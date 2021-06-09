@@ -1,19 +1,12 @@
 {
-  "compilerOptions": {
-    "target": "es2016",
-    "lib": [ "es2016" ],
-    "module": "commonjs",
-    "outDir": "out",
-    "importHelpers": true,
-    "sourceMap": true,
-    "strict": true,
-    "noImplicitReturns": true,
-    "noUnusedLocals": true,
-    "removeComments": true,
-    "skipLibCheck": true
-  },
-  "include": [
-    "src/extension.ts",
-    "src/ps1.d.ts"
-  ]
+	"compilerOptions": {
+		"module": "commonjs",
+		"target": "es2019",
+		"lib": ["ES2019"],
+		"outDir": "out",
+		"sourceMap": true,
+		"strict": true,
+		"rootDir": "src"
+	},
+	"exclude": ["node_modules", ".vscode-test"]
 }

@@ -1,27 +1,20 @@
+// See https://go.microsoft.com/fwlink/?LinkId=733558
+// for the documentation about the tasks.json format
 {
 	"version": "2.0.0",
 	"tasks": [
 		{
 			"type": "npm",
 			"script": "watch",
-			"problemMatcher": [
-				"$esbuild-watch"
-			],
+			"problemMatcher": "$tsc-watch",
+			"isBackground": true,
+			"presentation": {
+				"reveal": "never"
+			},
 			"group": {
 				"kind": "build",
 				"isDefault": true
-			},
-			"presentation": {
-				"echo": true,
-				"reveal": "always",
-				"focus": true,
-				"panel": "shared",
-				"showReuseMessage": true,
-				"clear": true
-			},
-			"label": "Watch",
-			"isBackground": true,
-			"detail": "Watch for changes with esbuild and rebuild on every change"
+			}
 		}
 	]
 }

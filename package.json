@@ -1,99 +1,56 @@
 {
-  "enableProposedApi": true,
-  "name": "vscode-pester-test-adapter",
-  "displayName": "Pester Test Explorer",
-  "description": "Run your Pester tests in the Sidebar of Visual Studio Code",
-  "icon": "img/test-explorer-pester.png",
-  "publisher": "TylerLeonhardt",
-  "version": "0.0.23",
-  "license": "MIT",
-  "homepage": "https://github.com/TylerLeonhardt/vscode-pester-test-adapter",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/TylerLeonhardt/vscode-pester-test-adapter.git"
-  },
-  "bugs": {
-    "url": "https://github.com/TylerLeonhardt/vscode-pester-test-adapter/issues"
-  },
-  "categories": [
-    "Other"
-  ],
-  "keywords": [
-    "PowerShell",
-    "Pester",
-    "test",
-    "testing"
-  ],
-  "main": "out/extension.js",
-  "scripts": {
-    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --loader:.ps1=text --external:vscode --format=cjs --platform=node",
-    "build": "npm run -S esbuild-base -- --sourcemap",
-    "watch": "npm run -S esbuild-base -- --sourcemap --watch",
-    "test-compile": "tsc -p ./",
-    "clean": "rimraf out *.vsix",
-    "rebuild": "npm run clean && npm run build",
-    "package": "vsce package",
-    "publish": "vsce publish",
-    "download-api": "vscode-dts dev",
-    "postdownload-api": "vscode-dts main",
-    "postinstall": "npm run download-api",
-    "vscode:prepublish": "npm run -S esbuild-base -- --minify"
-  },
-  "dependencies": {
-    "tslib": "~2.1.0",
-    "xml-js": "~1.6.11"
-  },
-  "devDependencies": {
-    "@types/node": "^14.14.20",
-    "@typescript-eslint/eslint-plugin": "^4.16.0",
-    "@typescript-eslint/parser": "^4.16.0",
-    "esbuild": "^0.12.5",
-    "eslint": "^7.21.0",
-    "rimraf": "~3.0.2",
-    "typescript": "~4.2.3",
-    "vsce": "~1.85.1",
-    "vscode-dts": "^0.3.1"
-  },
-  "engines": {
-    "vscode": "^1.51.0"
-  },
-  "activationEvents": [
-    "workspaceContains:**/*.[Tt]ests.ps1"
-  ],
-  "contributes": {
-    "configuration": {
-      "type": "object",
-      "title": "Pester Test Explorer configuration",
-      "properties": {
-        "pesterExplorer.logpanel": {
-          "description": "Write diagnotic logs to an output panel.",
-          "type": "boolean",
-          "default": true,
-          "scope": "resource"
-        },
-        "pesterExplorer.logfile": {
-          "description": "Write diagnostic logs to the given file.",
-          "type": "string",
-          "scope": "resource"
-        },
-        "pesterExplorer.testResultsFilePath": {
-          "description": "The path to the file _relative_ to your workspace. (i.e. `foo/TestExplorerResults.xml` would exist in a `foo` folder in the root of your workspace.)",
-          "type": "string",
-          "default": "TestExplorerResults.xml",
-          "scope": "resource"
-        },
-        "pesterExplorer.autoDiscoverOnOpen": {
-          "description": "If set to true, test discovery will be triggered when a workspace/folder is opened. If set to false, you will be prompted.",
-          "type": "boolean",
-          "default": false,
-          "scope": "resource"
-        },
-        "pesterExplorer.testRootDirectory": {
-          "description": "Specify the root directory of the location of your tests. The default behavior attempts to find a folder called 'test', 'tests', 'Test', or 'Tests' relative to the workspace/folder opened. If it can't find a folder like this, the root of the workspace/folder is used.",
-          "type": "string",
-          "scope": "resource"
-        }
-      }
-    }
-  }
+	"name": "test-provider-sample",
+	"displayName": "test-provider-sample",
+	"description": "Sample showing how to use the test APIs",
+	"version": "0.0.1",
+	"publisher": "vscode-samples",
+	"repository": "https://github.com/Microsoft/vscode-extension-samples",
+	"engines": {
+		"vscode": "^1.51.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"workspaceContains:*.md"
+	],
+	"main": "./out/extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"command": "test-provider-sample.runTests",
+				"title": "Custom Run Tests"
+			}
+		],
+		"views": {
+			"explorer": [
+				{
+					"id": "sampleTestExplorerView",
+					"name": "Sample Test Explorer"
+				}
+			]
+		}
+	},
+	"prettier": {
+		"printWidth": 120,
+		"singleQuote": true,
+		"arrowParens": "avoid"
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -p ./",
+		"lint": "eslint . --ext .ts,.tsx",
+		"watch": "tsc -watch -p ./",
+		"download-api": "vscode-dts dev",
+		"postdownload-api": "vscode-dts main",
+		"postinstall": "npm run download-api"
+	},
+	"devDependencies": {
+		"@types/node": "^12.12.0",
+		"@typescript-eslint/eslint-plugin": "^4.16.0",
+		"@typescript-eslint/parser": "^4.16.0",
+		"eslint": "^7.21.0",
+		"typescript": "^4.2.2",
+		"vscode-dts": "^0.3.1"
+	}
 }
