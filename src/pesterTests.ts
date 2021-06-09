@@ -7,7 +7,8 @@ import { TestSuiteInfo, TestInfo, TestRunStartedEvent, TestRunFinishedEvent, Tes
 import { PowerShellExtensionClient } from './powershellExtension';
 import { PesterTaskInvoker } from './pesterTaskInvoker';
 import { Log } from 'vscode-test-adapter-util';
-import getPesterTestScript from './Get-PesterTests.ps1'
+import getPesterTestScript from './Scripts/Get-PesterTests.ps1'
+import pesterVersionScript from './Scripts/Get-PesterVersion.ps1'
 
 export class PesterTestRunner {
 	private readonly testOutputWatcher: vscode.FileSystemWatcher;
@@ -47,10 +48,24 @@ export class PesterTestRunner {
 		return this.pesterTestSuite;
 	}
 
+	public async runPowershellScript(script: string, args: string[]) : Promise<string> {
+		const exePath = await this.getPowerShellExe();
+		this.log.debug(args);
+		this.log.debug(script);
+		const scriptRun = spawn(exePath, [
+			'-NonInteractive',
+			'-NoLogo',
+			'-NoProfile',
+			'-Command',
+			`. {${script}} ${args}`
+		];
+		return scriptRun.stdout.on('data', (data) => {
+			data.toString();
+		})
+	}
+
 	public async loadPesterTests(files?: vscode.Uri[], skipLoadingResults?: boolean): Promise<TestSuiteInfo> {
 		const exePath = await this.getPowerShellExe();
-
-		const pesterVersionScript = getPesterVersion();
 		this.log.debug(pesterVersionScript);
 		const pesterVersion = spawn(exePath, [
 			'-NonInteractive',

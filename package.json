@@ -1,4 +1,5 @@
 {
+  "enableProposedApi": true,
   "name": "vscode-pester-test-adapter",
   "displayName": "Pester Test Explorer",
   "description": "Run your Pester tests in the Sidebar of Visual Studio Code",
@@ -33,28 +34,29 @@
     "rebuild": "npm run clean && npm run build",
     "package": "vsce package",
     "publish": "vsce publish",
+    "download-api": "vscode-dts dev",
+    "postdownload-api": "vscode-dts main",
+    "postinstall": "npm run download-api",
     "vscode:prepublish": "npm run -S esbuild-base -- --minify"
   },
   "dependencies": {
     "tslib": "~2.1.0",
-    "vscode-test-adapter-api": "~1.9.0",
-    "vscode-test-adapter-util": "~0.7.1",
     "xml-js": "~1.6.11"
   },
   "devDependencies": {
     "@types/node": "^14.14.20",
-    "@types/vscode": "~1.50.0",
+    "@typescript-eslint/eslint-plugin": "^4.16.0",
+    "@typescript-eslint/parser": "^4.16.0",
     "esbuild": "^0.12.5",
+    "eslint": "^7.21.0",
     "rimraf": "~3.0.2",
     "typescript": "~4.2.3",
-    "vsce": "~1.85.1"
+    "vsce": "~1.85.1",
+    "vscode-dts": "^0.3.1"
   },
   "engines": {
-    "vscode": "^1.50.0"
+    "vscode": "^1.51.0"
   },
-  "extensionDependencies": [
-    "hbenl.vscode-test-explorer"
-  ],
   "activationEvents": [
     "workspaceContains:**/*.[Tt]ests.ps1"
   ],
