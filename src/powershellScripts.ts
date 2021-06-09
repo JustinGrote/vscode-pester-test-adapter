@@ -1,4 +1,5 @@
 import * as os from "os";
+import invokePesterScript from "./Invoke-Pester.ps1"
 
 export function getPesterVersion() {
     return `
@@ -27,12 +28,12 @@ function Discover-Test {
         [String[]] $Path,
         [String[]] $ExcludePath
     )
-    & (Get-Module Pester) { 
+    & (Get-Module Pester) {
         param (
-            $Path, 
+            $Path,
             $ExcludePath,
             $SessionState)
-        
+
         Reset-TestSuiteState
         # to avoid Describe thinking that we run in interactive mode
         $invokedViaInvokePester = $true
@@ -47,7 +48,7 @@ function Discover-Test {
         Find-Test -BlockContainer $containers -SessionState $SessionState } -Path $Path -ExcludePath $ExcludePath -SessionState $PSCmdlet.SessionState
 }
 
-function New-SuiteObject ($Block) { 
+function New-SuiteObject ($Block) {
     [PSCustomObject]@{
         type = 'suite'
         id = $Block.ScriptBlock.File + ';' + $Block.StartLine
@@ -58,7 +59,7 @@ function New-SuiteObject ($Block) {
     }
 }
 
-function New-TestObject ($Test) { 
+function New-TestObject ($Test) {
     [PSCustomObject]@{
         type = 'test'
         id = $Test.ScriptBlock.File + ';' + $Test.StartLine
@@ -69,7 +70,7 @@ function New-TestObject ($Test) {
 }
 
 function fold ($children, $Block) {
-    foreach ($b in $Block.Blocks) { 
+    foreach ($b in $Block.Blocks) {
         $o = (New-SuiteObject $b)
         $children.Add($o)
         fold $o.children $b
@@ -148,56 +149,5 @@ export function GetPesterInvokeScript(scriptPath: string, outputPath: string, li
         lineNumber = ""
     }
 
-    return `
-$ScriptPath = '${scriptPath}'
-$LineNumber = '${lineNumber}'
-$OutputPath = '${outputPath}'
-$pesterModule = Microsoft.PowerShell.Core\\Get-Module Pester;
-Write-Host '';
-if (!$pesterModule) {
-Write-Host 'Importing Pester module...';
-$pesterModule = Microsoft.PowerShell.Core\\Import-Module Pester -ErrorAction Ignore -PassThru -MinimumVersion 5.0.0;
-if (!$pesterModule) {
-    Write-Warning 'Failed to import Pester. You must install Pester module (version 5.0.0 or newer) to run or debug Pester tests.';
-    return;
-};
-};
-
-if ($LineNumber -match '\\d+') {
-$configuration = @{
-    Run = @{
-        Path = $ScriptPath;
-    };
-    Filter = @{
-        Line = $ScriptPath + ':' + $LineNumber;
-    };
-};
-if ('FromPreference' -ne $Output) {
-    $configuration.Add('Output', @{ Verbosity = $Output });
-};
-
-if ($OutputPath) {
-    $configuration.Add('TestResult', @{
-        Enabled = $true;
-        OutputPath = $OutputPath;
-    });
-};
-
-Pester\\Invoke-Pester -Configuration $configuration | Out-Null;
-} else {
-$configuration = @{
-    Run = @{
-        Path = $ScriptPath;
-    };
-};
-
-if ($OutputPath) {
-    $configuration.Add('TestResult', @{
-        Enabled = $true;
-        OutputPath = $OutputPath;
-    });
-}
-Pester\\Invoke-Pester -Configuration $configuration | Out-Null;
-};
-`
+    InvokePesterScript
 }

@@ -4,11 +4,10 @@ import * as vscode from 'vscode';
 import * as convert from 'xml-js';
 import { spawn } from 'child_process';
 import { TestSuiteInfo, TestInfo, TestRunStartedEvent, TestRunFinishedEvent, TestSuiteEvent, TestEvent } from 'vscode-test-adapter-api';
-import { getPesterDiscoveryScript } from './powershellScripts';
-import { getPesterVersion } from './powershellScripts';
 import { PowerShellExtensionClient } from './powershellExtension';
 import { PesterTaskInvoker } from './pesterTaskInvoker';
 import { Log } from 'vscode-test-adapter-util';
+import getPesterTestScript from './Get-PesterTests.ps1'
 
 export class PesterTestRunner {
 	private readonly testOutputWatcher: vscode.FileSystemWatcher;
@@ -49,9 +48,6 @@ export class PesterTestRunner {
 	}
 
 	public async loadPesterTests(files?: vscode.Uri[], skipLoadingResults?: boolean): Promise<TestSuiteInfo> {
-		files ??= await vscode.workspace.findFiles(new vscode.RelativePattern(this.getTestRootDirectory(), '**/*.[tT]ests.ps1'));
-		this.log.debug(`Found ${files.length} paths`);
-	
 		const exePath = await this.getPowerShellExe();
 
 		const pesterVersionScript = getPesterVersion();
@@ -68,14 +64,17 @@ export class PesterTestRunner {
 			}
 		})
 
-		const script = getPesterDiscoveryScript(files.map(uri => uri.fsPath));
+		// Replace the default path with our test root directory
+		// A better way would be to use parameters but we can't seem to use args and a command at the same time without using a file
+		const script = getPesterTestScript.replace('\$pwd',`\'${this.getTestRootDirectory()}\'`)
+
 		this.log.debug(script);
 		const ls = spawn(exePath, [
 			'-NonInteractive',
 			'-NoLogo',
 			'-NoProfile',
-			'-Command', script]);
-
+			'-Command', script,
+		]);
 		return new Promise<TestSuiteInfo>((resolve, reject) => {
 			let strData: string = ""
 
@@ -83,7 +82,7 @@ export class PesterTestRunner {
 				this.log.debug(`stdout: ${data}`);
 				strData += data;
 			});
-		
+
 			ls.stderr.on('data', (data) => {
 				const err: string = data.toString();
 				this.log.error(`stderr: ${err}`);
@@ -100,7 +99,7 @@ export class PesterTestRunner {
 				let testSuiteInfo = null;
 				try {
 					const results = /{.+?"type": "suite",\s+"id": "root",\s+"label": "Pester",\s+"children".+}\s*$/si.exec(strData);
-					if(!results || !results[0]) {
+					if (!results || !results[0]) {
 						throw new Error('Regex does not match');
 					}
 
@@ -265,12 +264,12 @@ export class PesterTestRunner {
 
 	private emitNodeUpdate(searchNode: TestSuiteInfo | TestInfo, xmlNode: any): void {
 		if (searchNode.type == 'suite') {
-	
+
 			this.testStatesEmitter.fire(<TestSuiteEvent>{ type: 'suite', suite: searchNode.id, state: 'completed' });
 
 			let xmlResults: any[] = [];
 			if (xmlNode.results['test-suite']) {
-				if(Array.isArray(xmlNode.results['test-suite'])) {
+				if (Array.isArray(xmlNode.results['test-suite'])) {
 					xmlResults.push(...xmlNode.results['test-suite']);
 				} else {
 					xmlResults.push(xmlNode.results['test-suite']);
@@ -278,7 +277,7 @@ export class PesterTestRunner {
 			}
 
 			if (xmlNode.results['test-case']) {
-				if(Array.isArray(xmlNode.results['test-case'])) {
+				if (Array.isArray(xmlNode.results['test-case'])) {
 					xmlResults.push(...xmlNode.results['test-case']);
 				} else {
 					xmlResults.push(xmlNode.results['test-case']);

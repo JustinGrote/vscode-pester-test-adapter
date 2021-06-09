@@ -13,7 +13,7 @@
     "skipLibCheck": true
   },
   "include": [
-    "src/main.ts"
+    "src/extension.ts",
+    "src/ps1.d.ts"
   ]
 }
-  

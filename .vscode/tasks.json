@@ -5,12 +5,23 @@
 			"type": "npm",
 			"script": "watch",
 			"problemMatcher": [
-				"$tsc-watch"
+				"$esbuild-watch"
 			],
-			"group": "build",
-			"label": "npm: watch",
-			"detail": "tsc -w",
-			"isBackground": true
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": true,
+				"panel": "shared",
+				"showReuseMessage": true,
+				"clear": true
+			},
+			"label": "Watch",
+			"isBackground": true,
+			"detail": "Watch for changes with esbuild and rebuild on every change"
 		}
 	]
 }
