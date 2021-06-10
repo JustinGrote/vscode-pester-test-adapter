@@ -4,9 +4,9 @@ import { parseMarkdown } from './parser';
 
 const textDecoder = new TextDecoder('utf-8');
 
-type MarkdownTestData = WorkspaceTestRoot | DocumentTestRoot | TestFile | TestHeading | TestCase;
+type TestData = WorkspaceTestRoot | DocumentTestRoot | TestFile | TestHeading | TestCase;
 
-export class MathTestController implements vscode.TestController<MarkdownTestData> {
+export class TestController implements vscode.TestController<TestData> {
   /**
    * @inheritdoc
    */
@@ -28,10 +28,10 @@ export class MathTestController implements vscode.TestController<MarkdownTestDat
   /**
    * @inheritdoc
    */
-  public runTests(request: vscode.TestRunRequest<MarkdownTestData>, cancellation: vscode.CancellationToken) {
+  public runTests(request: vscode.TestRunRequest<TestData>, cancellation: vscode.CancellationToken) {
     const run = vscode.test.createTestRun(request);
     const queue: vscode.TestItem<TestCase>[] = [];
-    const discoverTests = async (tests: Iterable<vscode.TestItem<MarkdownTestData>>) => {
+    const discoverTests = async (tests: Iterable<vscode.TestItem<TestData>>) => {
       for (const test of tests) {
         if (request.exclude?.includes(test)) {
           continue;
@@ -304,7 +304,7 @@ class TestCase {
     public generation: number,
   ) { }
 
-  async run(options: vscode.TestRun<MarkdownTestData>): Promise<void> {
+  async run(options: vscode.TestRun<TestData>): Promise<void> {
     const start = Date.now();
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
     const actual = this.evaluate();
