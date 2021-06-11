@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { PowershellRunner } from './powershellRunner';
 
 type TestData = WorkspaceTestRoot | TestItem
 
@@ -26,6 +27,7 @@ class TestItem {
 }
 
 export class PesterTestController implements vscode.TestController<TestData> {
+    private readonly ps = new PowershellRunner()
     /**
      * @inheritdoc
      */
@@ -39,6 +41,11 @@ export class PesterTestController implements vscode.TestController<TestData> {
             token.onCancellationRequested(() => {
                 workspaceTestRoot.status = vscode.TestItemStatus.Pending;
             });
+            // I think we can run Pester at this point
+
+            const scriptRun = this.ps.ExecPwshScriptFile('C:\\Users\\JGrote\\Projects\\vscode-pester-test-adapter\\src\\Scripts\\DiscoverTests.ps1')
+            let result : string
+            scriptRun.then((json) => {console.log(json)})
             workspaceTestRoot.addChild(TestItem.create())
             workspaceTestRoot.status = vscode.TestItemStatus.Resolved
         }
