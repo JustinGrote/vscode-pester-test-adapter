@@ -6,8 +6,8 @@ import { PowerShellExtensionClient } from "./powershellExtension";
 export class PowershellRunner {
     private readonly powershellExtensionClient = new PowerShellExtensionClient();
 
-    public constructor() {
-        this.powershellExtensionClient.RegisterExtension('FetchMyDetails');
+    public constructor(context: vscode.ExtensionContext) {
+        this.powershellExtensionClient.RegisterExtension(context.extension.id);
 	}
 
     async fetchPowerShellExePath(): Promise<string> {

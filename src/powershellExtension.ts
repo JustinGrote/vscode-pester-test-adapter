@@ -20,6 +20,9 @@ export class PowerShellExtensionClient {
     constructor() {
         const powershellExtension = vscode.extensions.getExtension<IPowerShellExtensionClient>("ms-vscode.PowerShell-Preview") || vscode.extensions.getExtension<IPowerShellExtensionClient>("ms-vscode.PowerShell");
         this.ExtensionPath = powershellExtension?.extensionPath ?? "";
+        if (powershellExtension == undefined) {
+            vscode.window.showErrorMessage("Could not find the Powershell or Powershell Preview extension loaded. Please make sure it is available")
+        }
         this.internalPowerShellExtensionClient = powershellExtension!.exports as IPowerShellExtensionClient;
     }
     private _sessionId: string | undefined;

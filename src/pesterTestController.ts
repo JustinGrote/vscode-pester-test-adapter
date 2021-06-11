@@ -27,7 +27,8 @@ class TestItem {
 }
 
 export class PesterTestController implements vscode.TestController<TestData> {
-    private readonly ps = new PowershellRunner()
+    private readonly context
+    private readonly ps
     /**
      * @inheritdoc
      */
@@ -43,9 +44,8 @@ export class PesterTestController implements vscode.TestController<TestData> {
             });
             // I think we can run Pester at this point
 
-            const scriptRun = this.ps.ExecPwshScriptFile('C:\\Users\\JGrote\\Projects\\vscode-pester-test-adapter\\src\\Scripts\\DiscoverTests.ps1')
-            let result : string
-            scriptRun.then((json) => {console.log(json)})
+            // const scriptRun = this.ps.ExecPwshScriptFile('C:\\Users\\JGrote\\Projects\\vscode-pester-test-adapter\\src\\Scripts\\DiscoverTests.ps1')
+            // scriptRun.then((json) => {console.log(json)})
             workspaceTestRoot.addChild(TestItem.create())
             workspaceTestRoot.status = vscode.TestItemStatus.Resolved
         }
@@ -60,4 +60,8 @@ export class PesterTestController implements vscode.TestController<TestData> {
 
     }
 
+    constructor(context: vscode.ExtensionContext) {
+        this.context = context
+        this.ps = new PowershellRunner(context)
+    }
 }
