@@ -1,30 +1,7 @@
+import * as path from 'path';
 import * as vscode from 'vscode';
+import { TestData, TestItem, WorkspaceTestRoot } from './pesterTest';
 import { PowershellRunner } from './powershellRunner';
-
-type TestData = WorkspaceTestRoot | TestItem
-
-class WorkspaceTestRoot {
-    public static create(workspaceFolder: vscode.WorkspaceFolder) {
-        return vscode.test.createTestItem<WorkspaceTestRoot>({
-            id   : `pestertests ${workspaceFolder.uri}`,
-            label: 'Pester Tests',
-            uri  : workspaceFolder.uri
-        })
-    }
-}
-
-class TestItem {
-    public static create() {
-        const item = vscode.test.createTestItem<TestItem>({
-            id: 'test 1',
-            label: 'Pester Test 1',
-            uri: vscode.workspace.workspaceFile
-        })
-        item.debuggable = true
-        item.runnable = true
-        return item
-    }
-}
 
 export class PesterTestController implements vscode.TestController<TestData> {
     private readonly context
@@ -43,9 +20,16 @@ export class PesterTestController implements vscode.TestController<TestData> {
                 workspaceTestRoot.status = vscode.TestItemStatus.Pending;
             });
             // I think we can run Pester at this point
-
-            // const scriptRun = this.ps.ExecPwshScriptFile('C:\\Users\\JGrote\\Projects\\vscode-pester-test-adapter\\src\\Scripts\\DiscoverTests.ps1')
-            // scriptRun.then((json) => {console.log(json)})
+            const scriptFolderPath = path.join(this.context.extension.extensionPath, 'Scripts')
+            const scriptPath = path.join(scriptFolderPath, 'DiscoverTests.ps1')
+            const scriptRun = this.ps.ExecPwshScriptFile(scriptPath, undefined, undefined, workspaceFolder.uri.fsPath)
+            scriptRun.then(
+                (json) => {
+                    // TODO: Parse to testItems
+                    console.log(json)
+                },
+                (err) => {console.log(err)}
+            )
             workspaceTestRoot.addChild(TestItem.create())
             workspaceTestRoot.status = vscode.TestItemStatus.Resolved
         }

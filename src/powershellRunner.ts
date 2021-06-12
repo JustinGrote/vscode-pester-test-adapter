@@ -1,13 +1,15 @@
-import { execFile, spawn } from 'child_process';
+import { execFile, ExecFileOptionsWithStringEncoding, spawn } from 'child_process';
 import { promisify } from 'util';
 import * as vscode from 'vscode';
 import { PowerShellExtensionClient } from "./powershellExtension";
 
 export class PowershellRunner {
     private readonly powershellExtensionClient = new PowerShellExtensionClient();
+    private readonly context : vscode.ExtensionContext
 
     public constructor(context: vscode.ExtensionContext) {
         this.powershellExtensionClient.RegisterExtension(context.extension.id);
+        this.context = context
 	}
 
     async fetchPowerShellExePath(): Promise<string> {
@@ -17,10 +19,15 @@ export class PowershellRunner {
         return details.exePath;
     }
 
-    public async ExecPwshScriptFile(scriptFilePath: string, args?: string[], exePath?: string) {
-        if (!exePath) {
-            exePath = await this.fetchPowerShellExePath();
-        }
+    /** Main Implementation: Executes a Powershell Script and returns the output as a string */
+    public async ExecPwshScriptFile(
+        scriptFilePath: string,
+        args?: string[],
+        exePath?: string,
+        workingDirectory?: string
+    ) {
+        exePath ??= await this.fetchPowerShellExePath()
+
         const exeArgs = [
             '-NonInteractive',
             '-NoLogo',
@@ -33,7 +40,9 @@ export class PowershellRunner {
         }
 
         const execFileAsync = promisify(execFile)
-        const psResult = await execFileAsync(exePath,exeArgs)
+        let options: ExecFileOptionsWithStringEncoding = { encoding: 'utf8'}
+        if (workingDirectory) {options.cwd = workingDirectory}
+        const psResult = await execFileAsync(exePath,exeArgs,options)
 
         return psResult.stdout
     }
