@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { PowerShellRunner } from './powershellRunner';
 
 export type TestData = WorkspaceTestRoot | TestItem
