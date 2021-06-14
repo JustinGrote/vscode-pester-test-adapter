@@ -16,15 +16,16 @@ export interface IPowerShellExtensionClient {
 }
 
 export class PowerShellExtensionClient {
-    private internalPowerShellExtensionClient: IPowerShellExtensionClient
-    constructor() {
-        const powershellExtension = vscode.extensions.getExtension<IPowerShellExtensionClient>("ms-vscode.PowerShell-Preview") || vscode.extensions.getExtension<IPowerShellExtensionClient>("ms-vscode.PowerShell");
-        this.ExtensionPath = powershellExtension?.extensionPath ?? "";
-        if (powershellExtension == undefined) {
-            vscode.window.showErrorMessage("Could not find the Powershell or Powershell Preview extension loaded. Please make sure it is available")
-        }
-        this.internalPowerShellExtensionClient = powershellExtension!.exports as IPowerShellExtensionClient;
+
+    static async create(context: vscode.ExtensionContext, powershellExtension: vscode.Extension<IPowerShellExtensionClient>) {
+        const internalPowerShellExtensionClient = await powershellExtension.activate()
+        const item = new PowerShellExtensionClient(context, internalPowerShellExtensionClient)
+        item.RegisterExtension(item.context.extension.id)
+        return item
     }
+
+    constructor(private context: vscode.ExtensionContext, private internalPowerShellExtensionClient : IPowerShellExtensionClient) {}
+
     private _sessionId: string | undefined;
     private get sessionId(): string | undefined {
         if (!this._sessionId) {
@@ -37,8 +38,6 @@ export class PowerShellExtensionClient {
     private set sessionId(id: string | undefined) {
         this._sessionId = id;
     }
-
-    public readonly ExtensionPath: string;
 
     public get IsConnected() {
         return this._sessionId != null;

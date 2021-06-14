@@ -1,15 +1,32 @@
 import * as vscode from 'vscode';
+import { PesterTestController } from './pesterTestController';
 
 export type TestData = WorkspaceTestRoot | TestItem
 
+/** An "implementation" of TestItem that represents the test hierachy in a workspace */
 export class WorkspaceTestRoot {
-    public static create(workspaceFolder: vscode.WorkspaceFolder) {
-        return vscode.test.createTestItem<WorkspaceTestRoot>({
-            id   : `pestertests ${workspaceFolder.uri}`,
+    // A static method is used instead of a constructor so that we
+    public static create(workspaceFolder: vscode.WorkspaceFolder, token: vscode.CancellationToken, controller: PesterTestController) : vscode.TestItem<WorkspaceTestRoot,TestData> {
+        // item is meant to represent "this new item we are building"
+        const item = vscode.test.createTestItem<WorkspaceTestRoot, TestData>({
+            id   : `pester ${workspaceFolder.uri}`,
             label: 'Pester',
             uri  : workspaceFolder.uri
         })
+
+        item.resolveHandler = token => {
+            token.onCancellationRequested(() => {
+                item.status = vscode.TestItemStatus.Pending
+            })
+            item.status = vscode.TestItemStatus.Pending
+
+            item.status = vscode.TestItemStatus.Resolved
+        }
+
+        return item
     }
+
+    constructor(public readonly workspaceFolder: vscode.WorkspaceFolder) {}
 }
 
 export class TestItem {
@@ -23,8 +40,4 @@ export class TestItem {
         item.runnable = true
         return item
     }
-}
-
-export class TestHierarchy implements TestItem {
-    public static create() {}
 }

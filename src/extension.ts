@@ -2,35 +2,40 @@ import * as vscode from 'vscode';
 import { PesterTestController } from './pesterTestController';
 import { TestController } from './testController';
 
-/** Looks for the powershell extension and if it is not present, wait for it to be installed */
-async function waitForPowershellExtension(context: vscode.ExtensionContext) {
-  const powershellExtension = vscode.extensions.getExtension("ms-vscode.PowerShell-Preview") || vscode.extensions.getExtension("ms-vscode.PowerShell");
-	if(!powershellExtension) {
-		await vscode.window.showErrorMessage('Pester Test Explorer: Requires either the PowerShell or PowerShell Preview extension. Please install and reload the window.');
-		const activatedEvent = vscode.extensions.onDidChange(() => {
-			if (vscode.extensions.getExtension('ms-vscode.PowerShell') || vscode.extensions.getExtension('ms-vscode.PowerShell-Preview')) {
-				activate(context);
-				activatedEvent.dispose();
-			}
-		});
-    return
-	}
-  if (!powershellExtension!.isActive) {
-		await powershellExtension.activate();
-	}
-}
-
 export async function activate(context: vscode.ExtensionContext) {
-
-  await waitForPowershellExtension(context)
+  const powershellExtension = await getPowershellExtension(context)
+  if (!powershellExtension) {return}
 
   context.subscriptions.push(
     vscode.test.registerTestController(new TestController()),
-    vscode.test.registerTestController(new PesterTestController(context)),
-
-    // vscode.commands.registerCommand('test-provider-sample.runTests', async tests => {
-    //   await vscode.test.runTests({ tests: tests instanceof Array ? tests : [tests], debug: false });
-    //   vscode.window.showInformationMessage('Test run complete');
-    // }),
+    vscode.test.registerTestController(await PesterTestController.create(context,powershellExtension)),
   );
+}
+
+
+/** Retrieves either the Powershell or Powershell Preview extension. This is used in place of a package.json extension dependency
+ * because either/or is acceptable and there's no way to do this with an extension depenency.
+ */
+function findPowershellExtension() {
+  return vscode.extensions.getExtension("ms-vscode.PowerShell-Preview")
+    || vscode.extensions.getExtension("ms-vscode.PowerShell")
+}
+
+/** Looks for the powershell extension and if it is not present, wait for it to be installed */
+async function getPowershellExtension(context: vscode.ExtensionContext) {
+  const powershellExtension = findPowershellExtension()
+  if (powershellExtension) {
+    return powershellExtension
+  } else {
+    await vscode.window.showErrorMessage('Please install either the PowerShell or PowerShell Preview extension to use the Pester Test Explorer.');
+
+    // Attempt a reactivation again after extensions have reloaded.
+    const activatedEvent = vscode.extensions.onDidChange(() => {
+      // Stay registered until Powershell is detected as installed
+      if (findPowershellExtension()) {
+        activate(context)
+        activatedEvent.dispose()
+      }
+    })
+  }
 }
