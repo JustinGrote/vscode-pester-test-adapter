@@ -1,6 +1,11 @@
 import NodePowershell = require('node-powershell');
 
 export class PowerShellRunner {
+    constructor(
+        private readonly shell = new NodePowershell({
+            noProfile: true,
+        })
+    ){}
 
     /**
      * Initializes a new Powershell Runner that uses NodePowershell on the backend to run requests to a shared powershell instance
@@ -9,17 +14,39 @@ export class PowerShellRunner {
      * @param psExePath - Path to the Powershell Executable to use for the runner. This is typically supplied from the PowerShellExtensionClient
      */
     static async create(psExePath:string) {
-        // Will inherit from the NPS environment variable hopefully
+        // NPS environment variable is used as a workaround to specify which powershell to use since node-powershell doesn't provide a constructor
         process.env.NPS = psExePath
         const item = new PowerShellRunner()
         return item
     }
 
-    constructor(
-        private readonly shell: NodePowershell = new NodePowershell()
-    ){}
+    /** Executes a Powershell Command and returns the output as a string */
+    async ExecPwshCommand(command: string, args?: string[]) {
+        await this.shell.addCommand(command)
+        if (args) {
+            for (let arg of args) {
+                await this.shell.addArgument(arg)
+            }
+        }
+        return await this.shell.invoke()
+    }
 
-    // /** Executes a Powershell Script and returns the script output as a string */
+    /** Executes a Powershell Script and returns the script output as a string */
+    async ExecPwshScriptFile(path: string, args?: string[]) {
+        this.ExecPwshCommand(`. ${path}`, args)
+    }
+
+    /** Fetch the Pester Test json information for a particular path(s) */
+    async discoverTests(path: string) {
+        await this.shell.addCommand(`
+ipmo pester -minimumversion "5.2.0";
+Invoke-Pester -Configuration @{Run=@{Path='C:\\Users\\JGrote\\Projects\\vscode-pester-test-adapter\\sample'}}
+`)
+        const result = await this.shell.invoke()
+        return result
+    }
+
+    //
     // public async ExecPwshScriptFile(
     //     scriptFilePath: string,
     //     args?: string[],

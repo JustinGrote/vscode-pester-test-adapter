@@ -13,16 +13,16 @@ export class PesterTestController implements vscode.TestController<TestData> {
         // Node-Powershell will auto-append the .exe for some reason so we have to strip it first.
         const psExePath = pseDetails.exePath.replace(new RegExp('\.exe$'), '')
         const powerShellRunner = await PowerShellRunner.create(psExePath)
-        return new PesterTestController(powerShellRunner)
+        return new PesterTestController(powerShellRunner,context)
     }
 
-    constructor(private readonly powerShellRunner : PowerShellRunner) {}
+    constructor(private readonly powerShellRunner : PowerShellRunner, private readonly context : vscode.ExtensionContext) {}
 
     /**
      * @inheritdoc
      */
     createWorkspaceTestRoot(workspace: vscode.WorkspaceFolder, token: vscode.CancellationToken) {
-        return WorkspaceTestRoot.create(workspace, token, this)
+        return WorkspaceTestRoot.create(workspace, token, this.powerShellRunner, this.context.extensionPath)
     }
 
     // async discoverTests(workspaceFolder: vscode.WorkspaceFolder, token: vscode.CancellationToken) {

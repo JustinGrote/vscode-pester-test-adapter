@@ -10,6 +10,8 @@
 			"request": "launch",
 			"runtimeExecutable": "${execPath}",
 			"args": [
+				"--user-data-dir=C:/users/jgrote/.vscodetest",
+				"--disable-extensions",
 				"--extensionDevelopmentPath=${workspaceFolder}",
 				"${workspaceFolder}/sample"
 			],
