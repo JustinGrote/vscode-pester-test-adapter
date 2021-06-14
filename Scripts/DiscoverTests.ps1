@@ -2,6 +2,9 @@
 using namespace System.Collections.Generic
 using namespace Pester
 
+[CmdletBinding()]
+param([Parameter(Mandatory)]$Path)
+
 $VerbosePreference = 'Ignore'
 $WarningPreference = 'Ignore'
 $DebugPreference = 'Ignore'
@@ -48,6 +51,7 @@ function fold ($children, $Block) {
 
 $config = New-PesterConfiguration @{
     Run = @{
+        Path = $path
         SkipRun = $true
         PassThru = $true
     }
