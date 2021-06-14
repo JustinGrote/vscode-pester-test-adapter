@@ -13,7 +13,7 @@
 		"Other"
 	],
 	"activationEvents": [
-		"workspaceContains:**/*.Tests.ps1"
+		"workspaceContains:**/*.[tT]ests.[pP][sS]1"
 	],
 	"main": "./out/extension.js",
 	"contributes": {

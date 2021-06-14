@@ -1,8 +1,7 @@
-import * as vscode from 'vscode';
-import * as path from 'path';
-import { PowerShellRunner } from './powershellRunner';
+import * as vscode from 'vscode'
+import { PowerShellRunner } from './powershellRunner'
 
-export type TestData = WorkspaceTestRoot | TestItem
+export type TestData = WorkspaceTestRoot | TestFile
 
 /** An "implementation" of TestItem that represents the test hierachy in a workspace */
 export class WorkspaceTestRoot {
@@ -20,15 +19,39 @@ export class WorkspaceTestRoot {
             uri  : workspaceFolder.uri
         })
 
+        item.status = vscode.TestItemStatus.Pending
         item.resolveHandler = (token) => {
+            // TODO: Make this a setting
+            const pattern = new vscode.RelativePattern(workspaceFolder, '**/*.[tT]ests.[pP][sS]1');
+            const watcher = vscode.workspace.createFileSystemWatcher(pattern);
+            const contentChange = new vscode.EventEmitter<vscode.Uri>();
+
+            watcher.onDidCreate(uri =>
+              item.addChild(TestFile.create(uri))
+            );
+            watcher.onDidChange(uri => contentChange.fire(uri));
+            watcher.onDidDelete(uri => item.children.get(uri.toString())?.dispose());
+
+            token.onCancellationRequested(() => {
+              item.status = vscode.TestItemStatus.Pending;
+              watcher.dispose();
+            });
+
+            vscode.workspace.findFiles(pattern).then(files => {
+              for (const uri of files) {
+                item.addChild(TestFile.create(uri));
+              }
+              item.status = vscode.TestItemStatus.Resolved;
+            });
+
             token.onCancellationRequested(() => {
                 item.status = vscode.TestItemStatus.Pending
             })
-            const discoveryScriptPath = path.join(scriptPath, 'DiscoverTests.ps1')
-            const discoveryResult = powerShellRunner.ExecPwshScriptFile(discoveryScriptPath, [workspaceFolder.uri.fsPath])
-                .then((result)=>{return result})
-            // TODO: Add Children from discovery via .Tests.ps1 discovery
-            // TODO: Filesystem watcher to refresh
+            // const discoveryScriptPath = path.join(scriptPath, 'DiscoverTests.ps1')
+            // const discoveryResult = powerShellRunner.ExecPwshScriptFile(discoveryScriptPath, [workspaceFolder.uri.fsPath])
+            //     .then((result)=>{return result})
+            // // TODO: Add Children from discovery via .Tests.ps1 discovery
+            // // TODO: Filesystem watcher to refresh
             item.status = vscode.TestItemStatus.Resolved
         }
 
@@ -38,12 +61,12 @@ export class WorkspaceTestRoot {
     constructor(public readonly workspaceFolder: vscode.WorkspaceFolder) {}
 }
 
-export class TestItem {
-    public static create() {
-        const item = vscode.test.createTestItem<TestItem>({
-            id: 'test 1',
-            label: 'Pester Test 1',
-            uri: vscode.workspace.workspaceFile
+export class TestFile {
+    public static create(uri: vscode.Uri) {
+        const item = vscode.test.createTestItem<TestFile>({
+            id: uri.path,
+            label: uri.path.split('/').pop()!,
+            uri: uri
         })
         item.debuggable = true
         item.runnable = true

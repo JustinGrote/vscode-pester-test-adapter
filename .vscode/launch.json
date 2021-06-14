@@ -10,7 +10,7 @@
 			"request": "launch",
 			"runtimeExecutable": "${execPath}",
 			"args": [
-				"--disable-extensions",
+				"--install-extension=ms-vscode.powershell-preview",
 				"--extensionDevelopmentPath=${workspaceFolder}",
 				"${workspaceFolder}/sample"
 			],
