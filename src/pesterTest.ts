@@ -19,17 +19,17 @@ export class WorkspaceTestRoot {
         })
 
         item.status = vscode.TestItemStatus.Pending
-        item.resolveHandler = (token) => {
+        item.resolveHandler = async token => {
             // TODO: Make this a setting
             const pattern = new vscode.RelativePattern(workspaceFolder, '**/*.[tT]ests.[pP][sS]1')
             const watcher = vscode.workspace.createFileSystemWatcher(pattern)
             // const contentChange = new vscode.EventEmitter<vscode.Uri>()
-            vscode.workspace.findFiles(pattern).then(files => {
-                for (const uri of files) {
-                    item.addChild(TestFile.create(uri, pesterTestController))
-                }
-                item.status = vscode.TestItemStatus.Resolved
-            })
+            const files = await vscode.workspace.findFiles(pattern)
+
+            for (const uri of files) {
+                item.addChild(TestFile.create(uri, pesterTestController))
+            }
+            item.status = vscode.TestItemStatus.Resolved
 
             watcher.onDidCreate(uri =>
                 item.addChild(TestFile.create(uri, pesterTestController))
