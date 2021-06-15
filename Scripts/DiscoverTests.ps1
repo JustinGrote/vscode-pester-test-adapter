@@ -3,7 +3,12 @@ using namespace System.Collections.Generic
 using namespace Pester
 
 [CmdletBinding()]
-param([Parameter(Mandatory)]$Path)
+param(
+    #Path(s) to search for tests
+    [Parameter(Mandatory)][String[]]$Path,
+    #Only return "It" Test Results and not the resulting hierarcy
+    [Switch]$TestsOnly
+)
 
 $VerbosePreference = 'Ignore'
 $WarningPreference = 'Ignore'
@@ -61,6 +66,12 @@ $config = New-PesterConfiguration @{
 }
 $found = Invoke-Pester -Configuration $config
 
+if ($TestsOnly) {
+    $found.tests | Foreach-Object {
+        New-TestObject $PSItem
+    } | ConvertTo-Json -Depth 100
+    return
+}
 
 $testSuiteInfo = [PSCustomObject]@{
     type = 'suite'

@@ -33,18 +33,10 @@ export class PowerShellRunner {
 
     /** Executes a Powershell Script and returns the script output as a string */
     async ExecPwshScriptFile(path: string, args?: string[]) {
-        this.ExecPwshCommand(`. ${path}`, args)
+        return this.ExecPwshCommand(`. ${path}`, args)
     }
 
-    /** Fetch the Pester Test json information for a particular path(s) */
-    async discoverTests(path: string) {
-        await this.shell.addCommand(`
-ipmo pester -minimumversion "5.2.0";
-Invoke-Pester -Configuration @{Run=@{Path='C:\\Users\\JGrote\\Projects\\vscode-pester-test-adapter\\sample'}}
-`)
-        const result = await this.shell.invoke()
-        return result
-    }
+
 
     //
     // public async ExecPwshScriptFile(

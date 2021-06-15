@@ -1,4 +1,5 @@
-import * as vscode from 'vscode';
+import * as vscode from 'vscode'
+
 
 const testRe = /^([0-9]+)\s*([+*/-])\s*([0-9]+)\s*=\s*([0-9]+)/;
 const headingRe = /^(#+)\s*(.+)$/;
