@@ -63,22 +63,6 @@ export class TestFile {
         })
 
         item.resolveHandler = token => {
-            // TODO: Replace this mock with doing it for real
-            // const pesterResult = String.raw`
-            // {
-            //     "type": "test",
-            //     "id": "C:\\Users\\JGrote\\Projects\\vscode-pester-test-adapter\\sample\\Tests\\Sample.tests.ps1;8",
-            //     "file": "C:\\Users\\JGrote\\Projects\\vscode-pester-test-adapter\\sample\\Tests\\Sample.tests.ps1",
-            //     "line": 7,
-            //     "label": "Describe True"
-            // }
-            // `
-
-            // const result: vscode.TestItemOptions = JSON.parse(pesterResult)
-            // item.addChild(vscode.test.createTestItem<TestIt>(result))
-            // result.id = 'test2'
-            // item.addChild(vscode.test.createTestItem<TestIt>(result))
-            // result.label = 'New Describe True'
             const fsPath = testFilePath.fsPath
             ps.discoverTests(fsPath, true).then(fileTests => {
                     for (const testItem of fileTests) {
