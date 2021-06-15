@@ -62,19 +62,17 @@ export class TestFile {
             uri: testFilePath
         })
 
-        item.resolveHandler = token => {
+        item.resolveHandler = async token => {
             token.onCancellationRequested(() => {
                 item.status = vscode.TestItemStatus.Pending
             })
             const fsPath = testFilePath.fsPath
-            ps.discoverTests(fsPath, true).then(fileTests => {
-                for (const testItem of fileTests) {
-                    item.addChild(
-                        TestIt.create(testItem)
-                    )
-                }
+            const fileTests = await ps.discoverTests(fsPath, true)
+            for (const testItem of fileTests) {
+                item.addChild(
+                    TestIt.create(testItem)
+                )
             }
-            )
             item.status = vscode.TestItemStatus.Resolved
         }
         item.debuggable = true
