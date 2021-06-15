@@ -1,6 +1,6 @@
 import * as Path from 'path'
 import * as vscode from 'vscode'
-import { TestData, WorkspaceTestRoot } from './pesterTest'
+import { TestData, TestIt, WorkspaceTestRoot } from './pesterTest'
 import { PowerShellExtensionClient } from './powershellExtension'
 import { PowerShellRunner } from './powershellRunner'
 
@@ -24,7 +24,7 @@ export class PesterTestController implements vscode.TestController<TestData> {
      */
     createWorkspaceTestRoot(workspace: vscode.WorkspaceFolder, token: vscode.CancellationToken) {
         // return WorkspaceTestRoot.create(workspace, token, this.powerShellRunner, this.context.extensionPath)
-        return WorkspaceTestRoot.create(workspace, token)
+        return WorkspaceTestRoot.create(workspace, token, this.powerShellRunner)
     }
 
     createDocumentTestRoot(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.TestItem<TestData, TestData> | undefined{
@@ -40,7 +40,7 @@ export class PesterTestController implements vscode.TestController<TestData> {
         const scriptArgs = [path]
         if (testsOnly) {scriptArgs + '$true'}
         const testResultJson = await this.powerShellRunner.ExecPwshScriptFile(scriptPath,scriptArgs)
-        JSON.parse(testResultJson)
+        const result: TestIt[] = JSON.parse(testResultJson)
         return result
     }
         // async discoverTests(workspaceFolder: vscode.WorkspaceFolder, token: vscode.CancellationToken) {
