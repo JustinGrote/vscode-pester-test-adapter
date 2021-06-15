@@ -7,7 +7,7 @@ param(
     #Path(s) to search for tests
     [Parameter(Mandatory)][String[]]$Path,
     #Only return "It" Test Results and not the resulting hierarcy
-    [Switch]$TestsOnly
+    [Boolean]$TestsOnly
 )
 
 $VerbosePreference = 'Ignore'

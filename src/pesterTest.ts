@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { PowerShellRunner } from './powershellRunner'
+import { PesterTestController } from './pesterTestController'
 
 export type TestData = WorkspaceTestRoot | TestFile
 
@@ -9,8 +9,7 @@ export class WorkspaceTestRoot {
     static create(
         workspaceFolder: vscode.WorkspaceFolder,
         token: vscode.CancellationToken,
-        // powerShellRunner: PowerShellRunner,
-        // scriptPath: string
+        pesterTestController: PesterTestController,
     ): vscode.TestItem<WorkspaceTestRoot, TestData> {
         // item is meant to represent "this new item we are building"
         const item = vscode.test.createTestItem<WorkspaceTestRoot, TestData>({
@@ -25,32 +24,28 @@ export class WorkspaceTestRoot {
             const pattern = new vscode.RelativePattern(workspaceFolder, '**/*.[tT]ests.[pP][sS]1')
             const watcher = vscode.workspace.createFileSystemWatcher(pattern)
             // const contentChange = new vscode.EventEmitter<vscode.Uri>()
+            vscode.workspace.findFiles(pattern).then(files => {
+                for (const uri of files) {
+                    item.addChild(TestFile.create(uri, pesterTestController))
+                }
+                item.status = vscode.TestItemStatus.Resolved
+            })
 
             watcher.onDidCreate(uri =>
-                item.addChild(TestFile.create(uri))
+                item.addChild(TestFile.create(uri, pesterTestController))
             )
             // TODO: Run pester scanner on change
             // watcher.onDidChange(uri =>
             //     contentChange.fire(uri))
-            watcher.onDidDelete(uri => item.children.get(uri.toString())?.dispose())
+            watcher.onDidDelete(uri =>
+                item.children.get(uri.toString())?.dispose()
+            )
 
             token.onCancellationRequested(() => {
                 // This will trigger the resolveHandler again
                 item.status = vscode.TestItemStatus.Pending
                 watcher.dispose()
             })
-
-            vscode.workspace.findFiles(pattern).then(files => {
-                for (const uri of files) {
-                    item.addChild(TestFile.create(uri))
-                }
-                item.status = vscode.TestItemStatus.Resolved
-            })
-            // const discoveryScriptPath = path.join(scriptPath, 'DiscoverTests.ps1')
-            // const discoveryResult = powerShellRunner.ExecPwshScriptFile(discoveryScriptPath, [workspaceFolder.uri.fsPath])
-            //     .then((result)=>{return result})
-            // // TODO: Add Children from discovery via .Tests.ps1 discovery
-            // // TODO: Filesystem watcher to refresh
         }
 
         return item
@@ -60,33 +55,37 @@ export class WorkspaceTestRoot {
 }
 
 export class TestFile {
-    public static create(testFilePath: vscode.Uri, ps: PowerShellRunner) {
+    public static create(testFilePath: vscode.Uri, ps: PesterTestController) {
         const item = vscode.test.createTestItem<TestFile>({
             id: testFilePath.path,
             label: testFilePath.path.split('/').pop()!,
             uri: testFilePath
         })
 
-        const fsPath = testFilePath.fsPath
         item.resolveHandler = token => {
             // TODO: Replace this mock with doing it for real
-            const pesterResult = String.raw`
-            {
-                "type": "test",
-                "id": "C:\\Users\\JGrote\\Projects\\vscode-pester-test-adapter\\sample\\Tests\\Sample.tests.ps1;8",
-                "file": "C:\\Users\\JGrote\\Projects\\vscode-pester-test-adapter\\sample\\Tests\\Sample.tests.ps1",
-                "line": 7,
-                "label": "Describe True"
-            }
-            `
+            // const pesterResult = String.raw`
+            // {
+            //     "type": "test",
+            //     "id": "C:\\Users\\JGrote\\Projects\\vscode-pester-test-adapter\\sample\\Tests\\Sample.tests.ps1;8",
+            //     "file": "C:\\Users\\JGrote\\Projects\\vscode-pester-test-adapter\\sample\\Tests\\Sample.tests.ps1",
+            //     "line": 7,
+            //     "label": "Describe True"
+            // }
+            // `
 
-            const result: vscode.TestItemOptions = JSON.parse(pesterResult)
-            item.addChild(vscode.test.createTestItem<TestIt>(result))
-            result.id = 'test2'
-            item.addChild(vscode.test.createTestItem<TestIt>(result))
-            result.label = 'New Describe True'
+            // const result: vscode.TestItemOptions = JSON.parse(pesterResult)
             // item.addChild(vscode.test.createTestItem<TestIt>(result))
-
+            // result.id = 'test2'
+            // item.addChild(vscode.test.createTestItem<TestIt>(result))
+            // result.label = 'New Describe True'
+            const fsPath = testFilePath.fsPath
+            ps.discoverTests(fsPath, true).then(fileTests => {
+                    for (const testItem of fileTests) {
+                        item.addChild(TestIt.create(testItem))
+                    }
+                }
+            )
             item.status = vscode.TestItemStatus.Resolved
         }
         item.debuggable = true
