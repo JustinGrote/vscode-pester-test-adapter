@@ -1,11 +1,15 @@
 import * as vscode from 'vscode'
 import { PesterTestController } from './pesterTestController'
 
+/** A union that represents all types of TestItems related to Pester */
 export type TestData = WorkspaceTestRoot | TestFile
 
-/** An "implementation" of TestItem that represents the test hierachy in a workspace */
+/**
+ * An "implementation" of TestItem that represents the test hierachy in a workspace.
+ * For Pester, the resolveHandler will find Pester test files and instantiate them as TestFile objects, which will in turn discover the tests in each file
+*/
 export class WorkspaceTestRoot {
-    // A static method is used instead of a constructor so that we
+    // A static method is used instead of a constructor so that this can be used async
     static create(
         workspaceFolder: vscode.WorkspaceFolder,
         token: vscode.CancellationToken,
@@ -54,6 +58,10 @@ export class WorkspaceTestRoot {
     constructor(public readonly workspaceFolder: vscode.WorkspaceFolder) { }
 }
 
+/**
+ * Represents a Pester Test file, typically named .tests.ps1.
+ * Its resolveHandler will run the DiscoverTests.ps1 script on the file it represents to discover the Context/Describe/It blocks within.
+ * */
 export class TestFile {
     public static create(testFilePath: vscode.Uri, ps: PesterTestController) {
         const item = vscode.test.createTestItem<TestFile>({
@@ -67,7 +75,7 @@ export class TestFile {
                 item.status = vscode.TestItemStatus.Pending
             })
             const fsPath = testFilePath.fsPath
-            const fileTests = await ps.discoverTests(fsPath, true)
+            const fileTests = await ps.discoverPesterTests([fsPath], true)
             for (const testItem of fileTests) {
                 item.addChild(
                     TestIt.create(testItem)
@@ -82,7 +90,7 @@ export class TestFile {
     }
 }
 
-/** Represents an "It" statement block in Pester */
+/** Represents an "It" statement block in Pester which roughly correlates to a Test Case or set of Cases */
 export class TestIt {
     public static create(
         options: vscode.TestItemOptions

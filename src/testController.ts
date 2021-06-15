@@ -1,6 +1,6 @@
-import { TextDecoder } from 'util';
-import * as vscode from 'vscode';
-import { parseMarkdown } from './parser';
+import { TextDecoder } from 'util'
+import * as vscode from 'vscode'
+import { parseMarkdown } from './parser'
 
 const textDecoder = new TextDecoder('utf-8');
 
@@ -36,7 +36,6 @@ export class TestController implements vscode.TestController<TestData> {
         if (request.exclude?.includes(test)) {
           continue;
         }
-
         if (test.data instanceof TestCase) {
           run.setState(test, vscode.TestResultState.Queued);
           queue.push(test as vscode.TestItem<TestCase, any>);

@@ -28,7 +28,14 @@ export class PowerShellRunner {
                 await this.shell.addArgument(arg)
             }
         }
-        return await this.shell.invoke()
+        try {
+            const result = await this.shell.invoke()
+            return result
+        } catch (err) {
+            // TODO: VSCode Error
+            console.log(err)
+            return ''
+        }
     }
 
     /** Executes a Powershell Script and returns the script output as a string */
