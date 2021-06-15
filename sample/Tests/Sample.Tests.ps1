@@ -7,5 +7,5 @@ Describe 'Sample Tests' {
 
         It 'Describe True' {$true | Should -be $true}
         It 'Decribe False' {$true | Should -be $false}
-        It 'Duplicate2' {$true | Should -be $true}
+        It 'Duplicate' {$true | Should -be $true}
 }
