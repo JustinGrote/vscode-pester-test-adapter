@@ -49,18 +49,21 @@ function New-TestObject ([Test]$Test) {
             $Actual = $matches['Actual']
         }
     }
+    # TypeScript does not validate these data types, so numbers must be expressly stated so they don't get converted to strings
     [PSCustomObject]@{
         type = 'test'
         id = $Test.ScriptBlock.File + ':' + $Test.StartLine
         file = $Test.ScriptBlock.File
-        startLine = $Test.StartLine - 1 #Lines are zero-based in vscode
-        endLine = $Test.ScriptBlock.StartPosition.EndLine - 1 #Lines are zero-based in vscode
+        startLine = [int]($Test.StartLine - 1) #Lines are zero-based in vscode
+        endLine = [int]($Test.ScriptBlock.StartPosition.EndLine - 1) #Lines are zero-based in vscode
         label = $Test.Name
         result = [ResultStatus]$Test.Result
-        duration = $Test.duration.TotalMilliseconds
+        duration = $Test.duration.Milliseconds #I don't think anyone is doing sub-millisecond code performance testing in Powershell :)
         message = $Message
         expected = $Expected
         actual = $Actual
+        targetFile = $Test.ErrorRecord.TargetObject.File
+        targetLine = [int]$Test.ErrorRecord.TargetObject.Line -1
         #TODO: Severity. Failed = Error Skipped = Warning
     }
 }

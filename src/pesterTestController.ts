@@ -14,6 +14,8 @@ export interface TestRunResult extends vscode.TestItemOptions {
     message: string
     expected: string
     actual: string
+    targetFile: string
+    targetLine: number
 }
 
 export interface TestInfo extends vscode.TestItemOptions {
@@ -118,14 +120,9 @@ export class PesterTestController implements vscode.TestController<TestData> {
         // Make this easier to query by putting the IDs in a map so we dont have to iterate an array constantly.
         // TODO: Make this part of getPesterTests?
         const pesterTestRunResultLookup = new Map<string,TestRunResult>()
-
-        try {
-            pesterTestRunResult.map(testResultItem =>
-                pesterTestRunResultLookup.set(testResultItem.id, testResultItem)
-            )
-        } catch (err) {
-            console.log(err)
-        }
+        pesterTestRunResult.map(testResultItem =>
+            pesterTestRunResultLookup.set(testResultItem.id, testResultItem)
+        )
 
         for (const testRequestItem of request.tests) {
             const testResult = pesterTestRunResultLookup.get(testRequestItem.id)
@@ -136,7 +133,27 @@ export class PesterTestController implements vscode.TestController<TestData> {
             if (!testResult.result) {
                 throw `No test result found for ${testResult.id}. This is probably a bug in the DoPesterTests script`
             }
+
             run.setState(testRequestItem, testResult.result, testResult.duration)
+
+            // TODO: This is clumsy and should be a constructor/method on the TestData type perhaps
+            const message = testResult.message && testResult.expected && testResult.actual
+                ? vscode.TestMessage.diff(
+                        testResult.message,
+                        testResult.expected,
+                        testResult.actual
+                    )
+                : new vscode.TestMessage(testResult.message)
+            if (testResult.targetFile != undefined && testResult.targetLine != undefined) {
+                message.location = new vscode.Location(
+                    vscode.Uri.file(testResult.targetFile),
+                    new vscode.Position(testResult.targetLine, 0)
+                )
+            }
+            if (message.message) {
+                run.appendMessage(testRequestItem, message)
+            }
+
             // TODO: Add error metadata
         }
 
