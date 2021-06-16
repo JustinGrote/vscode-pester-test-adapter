@@ -16,6 +16,18 @@ $VerbosePreference = 'Ignore'
 $WarningPreference = 'Ignore'
 $DebugPreference = 'Ignore'
 
+# Maps pester result status to vscode result status
+enum ResultStatus {
+    Unset
+    Queued
+    Running
+    Passed
+    Failed
+    Skipped
+    Errored
+    NotRun #Pester Specific, this should be ignored
+}
+
 function New-SuiteObject ([Block]$Block) {
     [PSCustomObject]@{
         type = 'suite'
@@ -43,7 +55,7 @@ function New-TestObject ([Test]$Test) {
         file = $Test.ScriptBlock.File
         line = $Test.StartLine - 1
         label = $Test.Name
-        result = $Test.Result
+        result = [ResultStatus]$Test.Result
         duration = $Test.duration.TotalMilliseconds
         message = $Message
         expected = $Expected
@@ -87,7 +99,7 @@ $Path.foreach{
 
 $config = New-PesterConfiguration @{
     Run = @{
-        SkipRun = $Discovery
+        SkipRun = [bool]$Discovery
         PassThru = $true
     }
     Output = @{

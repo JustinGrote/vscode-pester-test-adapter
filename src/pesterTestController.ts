@@ -59,9 +59,8 @@ export class PesterTestController implements vscode.TestController<TestData> {
         const scriptFolderPath = Path.join(this.context.extension.extensionPath, 'Scripts')
         const scriptPath = Path.join(scriptFolderPath, 'DoPesterTests.ps1')
         let scriptArgs = Array<string>()
-        if (testsOnly) {
-            scriptArgs.push('-TestsOnly')
-        }
+        if (testsOnly) {scriptArgs.push('-TestsOnly')}
+        if (discoveryOnly) {scriptArgs.push('-Discovery')}
         // Add remaining search paths as arguments, these will be rolled up into the path parameter of the script
         scriptArgs.push(...path)
 
@@ -98,8 +97,18 @@ export class PesterTestController implements vscode.TestController<TestData> {
             vscode.window.showWarningMessage("Pester: Hiding tests is currently not supported. The tests will still be run but their status will be suppressed")
         }
 
+        for (const testItem of request.tests) {
+            run.setState(testItem,vscode.TestResultState.Queued)
+        }
         const testsToRun = request.tests.map(testItem => testItem.id)
+
+        // TODO: Use a queue instead to line these up like the test example
+        for (const testItem of request.tests) {
+            run.setState(testItem,vscode.TestResultState.Running)
+        }
         const pesterTestRunResult = await this.runPesterTests(testsToRun, true)
+
+
         // Make this easier to query by putting the IDs in a map so we dont have to iterate an array constantly.
         // TODO: Make this part of getPesterTests?
         const pesterTestRunResultLookup = new Map<string,TestRunResult>()
@@ -121,7 +130,7 @@ export class PesterTestController implements vscode.TestController<TestData> {
             if (!testResult.result) {
                 throw `No test result found for ${testResult.id}. This is probably a bug in the DoPesterTests script`
             }
-            run.setState(testRequestItem, vscode.TestResultState.Passed, testResult.duration)
+            run.setState(testRequestItem, testResult.result, testResult.duration)
             // TODO: Add error metadata
         }
 
