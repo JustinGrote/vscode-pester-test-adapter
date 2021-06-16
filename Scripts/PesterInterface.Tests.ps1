@@ -1,6 +1,6 @@
-Describe 'DoPesterTests' {
+Describe 'PesterInterface' {
     BeforeAll{
-        $testScript = Resolve-Path "$PSScriptRoot/DoPesterTests.ps1"
+        $testScript = Resolve-Path "$PSScriptRoot/PesterInterface.ps1"
         $testDataPath = Resolve-Path "$PSScriptRoot/../sample"
     }
 
