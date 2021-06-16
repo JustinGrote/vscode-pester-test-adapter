@@ -44,7 +44,7 @@ function New-TestObject ([Test]$Test) {
         line = $Test.StartLine - 1
         label = $Test.Name
         result = $Test.Result
-        duration = $Test.duration.TotalSeconds
+        duration = $Test.duration.TotalMilliseconds
         message = $Message
         expected = $Expected
         actual = $Actual
@@ -123,11 +123,12 @@ if ($TestsOnly) {
         $testResult
     }
 
-    $testObjects = $testFilteredResult | ForEach-Object {
+    [Array]$testObjects = $testFilteredResult | ForEach-Object {
         New-TestObject $PSItem
     }
 
-    return $testObjects | ConvertTo-Json -Depth 100
+    # DO NOT USE THE PIPELINE, it will unwrap the array and cause a problem with single-item results
+    return ConvertTo-Json $testObjects -Depth 100
 }
 
 # TODO: Hierarchical return
