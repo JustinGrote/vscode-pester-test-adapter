@@ -65,7 +65,7 @@ export class PesterTestController implements vscode.TestController<TestData> {
     /** Fetch the Pester Test json information for a particular path(s) */
     async getPesterTests<T extends TestResult>(path: string[], discoveryOnly?: boolean, testsOnly?: boolean) {
         const scriptFolderPath = Path.join(this.context.extension.extensionPath, 'Scripts')
-        const scriptPath = Path.join(scriptFolderPath, 'DoPesterTests.ps1')
+        const scriptPath = Path.join(scriptFolderPath, 'PesterInterface.ps1')
         let scriptArgs = Array<string>()
         if (testsOnly) {scriptArgs.push('-TestsOnly')}
         if (discoveryOnly) {scriptArgs.push('-Discovery')}
@@ -131,7 +131,7 @@ export class PesterTestController implements vscode.TestController<TestData> {
             }
             // TODO: Test for blank or invalid result
             if (!testResult.result) {
-                throw `No test result found for ${testResult.id}. This is probably a bug in the DoPesterTests script`
+                throw `No test result found for ${testResult.id}. This is probably a bug in the PesterInterface script`
             }
 
             run.setState(testRequestItem, testResult.result, testResult.duration)
