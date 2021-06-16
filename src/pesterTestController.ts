@@ -5,7 +5,7 @@ import { PowerShellRunner } from './powershellRunner'
 
 /** Represents a test result returned from pester, serialized into JSON */
 
-export type TestResult = vscode.TestItemOptions | TestRunResult
+export type TestResult = vscode.TestItemOptions | TestRunResult | TestInfo
 
 /** The type used to represent a test run from the Pester runner, with additional status data */
 export interface TestRunResult extends vscode.TestItemOptions {
@@ -14,6 +14,12 @@ export interface TestRunResult extends vscode.TestItemOptions {
     message: string
     expected: string
     actual: string
+}
+
+export interface TestInfo extends vscode.TestItemOptions {
+    startLine: number
+    endLine: number
+    file: string
 }
 
 /**
@@ -75,7 +81,7 @@ export class PesterTestController implements vscode.TestController<TestData> {
     }
     /** Retrieve Pester Test information without actually running them */
     async discoverPesterTests(path: string[], testsOnly?: boolean) {
-        return this.getPesterTests<vscode.TestItemOptions>(path, true, testsOnly)
+        return this.getPesterTests<TestInfo>(path, true, testsOnly)
     }
     /** Run Pester Tests and retrieve the results */
     async runPesterTests(path: string[], testsOnly?: boolean) {

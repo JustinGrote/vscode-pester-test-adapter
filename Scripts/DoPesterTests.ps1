@@ -53,7 +53,8 @@ function New-TestObject ([Test]$Test) {
         type = 'test'
         id = $Test.ScriptBlock.File + ':' + $Test.StartLine
         file = $Test.ScriptBlock.File
-        line = $Test.StartLine - 1
+        startLine = $Test.StartLine - 1 #Lines are zero-based in vscode
+        endLine = $Test.ScriptBlock.StartPosition.EndLine - 1 #Lines are zero-based in vscode
         label = $Test.Name
         result = [ResultStatus]$Test.Result
         duration = $Test.duration.TotalMilliseconds

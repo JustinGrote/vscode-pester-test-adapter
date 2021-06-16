@@ -1,8 +1,8 @@
 import * as vscode from 'vscode'
-import { PesterTestController } from './pesterTestController'
+import { PesterTestController, TestInfo } from './pesterTestController'
 
 /** A union that represents all types of TestItems related to Pester */
-export type TestData = WorkspaceTestRoot | TestFile
+export type TestData = WorkspaceTestRoot | TestFile | TestInfo
 
 /**
  * An "implementation" of TestItem that represents the test hierachy in a workspace.
@@ -65,7 +65,7 @@ export class WorkspaceTestRoot {
 export class TestFile {
     public static create(testFilePath: vscode.Uri, ps: PesterTestController) {
         const item = vscode.test.createTestItem<TestFile>({
-            id: testFilePath.path,
+            id: testFilePath.fsPath,
             label: testFilePath.path.split('/').pop()!,
             uri: testFilePath
         })
@@ -93,12 +93,14 @@ export class TestFile {
 /** Represents an "It" statement block in Pester which roughly correlates to a Test Case or set of Cases */
 export class TestIt {
     public static create(
-        options: vscode.TestItemOptions
+        info: TestInfo
     ) {
-        const item = vscode.test.createTestItem<TestIt>(options)
+        info.uri = vscode.Uri.file(info.file)
+        const item = vscode.test.createTestItem<TestIt>(info)
         item.debuggable = true
         item.runnable = true
         item.status = vscode.TestItemStatus.Resolved
+        item.range = new vscode.Range(info.startLine, 0, info.endLine, 0)
         return item
     }
 }
