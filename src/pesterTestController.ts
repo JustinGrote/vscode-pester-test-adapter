@@ -77,6 +77,11 @@ export class PesterTestController implements vscode.TestController<TestData> {
         const testResultJson = await runner.ExecPwshScriptFile(scriptPath,scriptArgs)
         console.log(`JSON Result from Pester for ${scriptPath} ${scriptArgs}`,testResultJson)
         const result:T[] = JSON.parse(testResultJson)
+        // TODO: Refactor this using class-transformer https://github.com/typestack/class-transformer
+
+        // Coerce null/undefined into an empty array
+        if (result == null || result == undefined) {return new Array<T>()}
+
         // BUG: ConvertTo-Json in PS5.1 doesn't have a "-AsArray" and can return single objects which typescript doesn't catch.
         if (!Array.isArray(result)) {throw 'Powershell script returned a single object that is not an array. This is a bug. Make sure you did not pipe to Convert-Json!'}
         return result

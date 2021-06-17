@@ -69,7 +69,6 @@ export class TestFile {
             label: testFilePath.path.split('/').pop()!,
             uri: testFilePath
         })
-
         item.resolveHandler = async token => {
             token.onCancellationRequested(() => {
                 item.status = vscode.TestItemStatus.Pending
@@ -83,8 +82,8 @@ export class TestFile {
             }
             item.status = vscode.TestItemStatus.Resolved
         }
-        item.debuggable = true
-        item.runnable = true
+        item.debuggable = false
+        item.runnable = false
         item.status = vscode.TestItemStatus.Pending
         return item
     }
