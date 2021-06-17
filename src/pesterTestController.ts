@@ -1,6 +1,5 @@
 import * as Path from 'path'
 import * as vscode from 'vscode'
-import { TestData, WorkspaceTestRoot } from './pesterTest'
 import { PowerShellRunner } from './powershellRunner'
 
 /** Represents a test result returned from pester, serialized into JSON */
@@ -23,6 +22,110 @@ export interface TestInfo extends vscode.TestItemOptions {
     endLine: number
     file: string
 }
+
+/** A union that represents all types of TestItems related to Pester */
+export type TestData = WorkspaceTestRoot | TestFile | TestInfo
+
+/**
+ * An "implementation" of TestItem that represents the test hierachy in a workspace.
+ * For Pester, the resolveHandler will find Pester test files and instantiate them as TestFile objects, which will in turn discover the tests in each file
+*/
+export class WorkspaceTestRoot {
+    // A static method is used instead of a constructor so that this can be used async
+    static create(
+        workspaceFolder: vscode.WorkspaceFolder,
+        token: vscode.CancellationToken,
+        pesterTestController: PesterTestController,
+    ): vscode.TestItem<WorkspaceTestRoot, TestData> {
+        // item is meant to represent "this new item we are building"
+        const item = vscode.test.createTestItem<WorkspaceTestRoot, TestData>({
+            id: `pester ${workspaceFolder.uri}`,
+            label: 'Pester',
+            uri: workspaceFolder.uri
+        })
+
+        item.status = vscode.TestItemStatus.Pending
+        item.resolveHandler = async token => {
+            // TODO: Make this a setting
+            const pattern = new vscode.RelativePattern(workspaceFolder, '**/*.[tT]ests.[pP][sS]1')
+            const watcher = vscode.workspace.createFileSystemWatcher(pattern)
+            // const contentChange = new vscode.EventEmitter<vscode.Uri>()
+            const files = await vscode.workspace.findFiles(pattern)
+
+            for (const uri of files) {
+                item.addChild(TestFile.create(uri, pesterTestController))
+            }
+            item.status = vscode.TestItemStatus.Resolved
+
+            watcher.onDidCreate(uri =>
+                item.addChild(TestFile.create(uri, pesterTestController))
+            )
+            // TODO: Run pester scanner on change
+            // watcher.onDidChange(uri =>
+            //     contentChange.fire(uri))
+            watcher.onDidDelete(uri =>
+                item.children.get(uri.toString())?.dispose()
+            )
+
+            token.onCancellationRequested(() => {
+                // This will trigger the resolveHandler again
+                item.status = vscode.TestItemStatus.Pending
+                watcher.dispose()
+            })
+        }
+
+        return item
+    }
+
+    constructor(public readonly workspaceFolder: vscode.WorkspaceFolder) { }
+}
+
+/**
+ * Represents a Pester Test file, typically named .tests.ps1.
+ * Its resolveHandler will run the DiscoverTests.ps1 script on the file it represents to discover the Context/Describe/It blocks within.
+ * */
+export class TestFile {
+    public static create(testFilePath: vscode.Uri, ps: PesterTestController) {
+        const item = vscode.test.createTestItem<TestFile>({
+            id: testFilePath.fsPath,
+            label: testFilePath.path.split('/').pop()!,
+            uri: testFilePath
+        })
+        item.resolveHandler = async token => {
+            token.onCancellationRequested(() => {
+                item.status = vscode.TestItemStatus.Pending
+            })
+            const fsPath = testFilePath.fsPath
+            const fileTests = await ps.discoverPesterTests([fsPath], true)
+            for (const testItem of fileTests) {
+                item.addChild(
+                    TestIt.create(testItem)
+                )
+            }
+            item.status = vscode.TestItemStatus.Resolved
+        }
+        item.debuggable = false
+        item.runnable = false
+        item.status = vscode.TestItemStatus.Pending
+        return item
+    }
+}
+
+/** Represents an "It" statement block in Pester which roughly correlates to a Test Case or set of Cases */
+export class TestIt {
+    public static create(
+        info: TestInfo
+    ) {
+        info.uri = vscode.Uri.file(info.file)
+        const item = vscode.test.createTestItem<TestIt>(info)
+        item.debuggable = true
+        item.runnable = true
+        item.status = vscode.TestItemStatus.Resolved
+        item.range = new vscode.Range(info.startLine, 0, info.endLine, 0)
+        return item
+    }
+}
+
 
 /**
  * @inheritdoc
