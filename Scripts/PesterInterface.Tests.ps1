@@ -1,7 +1,7 @@
 Describe 'PesterInterface' {
     BeforeAll{
-        $testScript = Resolve-Path "$PSScriptRoot/PesterInterface.ps1"
-        $testDataPath = Resolve-Path "$PSScriptRoot/../sample"
+        $SCRIPT:testScript = Resolve-Path "$PSScriptRoot/PesterInterface.ps1"
+        $SCRIPT:testDataPath = Resolve-Path "$PSScriptRoot/../sample"
     }
 
     Context 'VerifyResults' {
@@ -12,46 +12,86 @@ Describe 'PesterInterface' {
             }
         }
         It 'Sample1 Single File' {
-            shouldReturnTestCount 7 @(
-                'C:\Users\JGrote\Projects\vscode-pester-test-adapter\sample\Tests\Sample.tests.ps1'
+            shouldReturnTestCount 20 @(
+                Resolve-Path "$PSScriptRoot/../sample/Tests/Basic.Tests.ps1"
             )
         }
-        It 'Sample1 Individual Test' {
-            shouldReturnTestCount 1 @(
-                'C:\Users\JGrote\Projects\vscode-pester-test-adapter\sample\Tests\Sample.tests.ps1:10'
-            )
+    }
+
+    Context "New-TestItemId" {
+        BeforeAll {
+            . $testScript 'fakepath' -LoadFunctionsOnly
         }
-        # It 'Sample1 Describe' {
-        #     shouldReturnTestCount 7 @(
-        #         'C:\Users\JGrote\Projects\vscode-pester-test-adapter\sample\Tests\Sample.tests.ps1:1'
-        #     )
-        # }
-        # It 'Sample1 Context' {
-        #     shouldReturnTestCount 4 @(
-        #         'C:\Users\JGrote\Projects\vscode-pester-test-adapter\sample\Tests\Sample.tests.ps1:2'
-        #     )
-        # }
-        # It 'Sample1 Context + Individual Test' {
-        #     shouldReturnTestCount 5 @(
-        #         'C:\Users\JGrote\Projects\vscode-pester-test-adapter\sample\Tests\Sample.tests.ps1:2'
-        #         'C:\Users\JGrote\Projects\vscode-pester-test-adapter\sample\Tests\Sample.tests.ps1:10'
-        #     )
-        # }
+        BeforeEach {
+            $SCRIPT:baseMock = [PSCustomObject]@{
+                PSTypeName = 'Test'
+                ScriptBlock = @{
+                    File = $null
+                }
+                Path = @()
+                Data = $null
+            }
+        }
+        It 'Fails on | character in Test Name' {
+            $baseMock.Path = 'My','Pat|h','ToTest'
+            {New-TestItemId $baseMock} | Should -Throw '*The pipe character * is not supported*'
+        }
+        It 'basic path' {
+            $baseMock.Path = 'Describe','Context','It'
+            New-TestItemId $baseMock | Should -Be 'Describe|Context|It'
+        }
+        It 'Array testcase' {
+            $baseMock.Path = 'Describe','Context','It <_>'
+            $baseMock.Data = @('test')
+            New-TestItemId $baseMock | Should -Be 'Describe|Context|It <_>|test'
+        }
+        It 'Hashtable testcase one key' {
+            $baseMock.Path = 'Describe','Context','It <Name>'
+            $baseMock.Data = @{Name='Pester'}
+            New-TestItemId $baseMock | Should -Be 'Describe|Context|It <Name>|Name=Pester'
+        }
+        It 'Hashtable testcase multiple key' {
+            $baseMock.Path = 'Describe','Context','It <Name> <Data>'
+            $baseMock.Data = @{Name='Pester';Data='Something'}
+            New-TestItemId $baseMock | Should -Be 'Describe|Context|It <Name> <Data>|Data=Something|Name=Pester'
+        }
+        It 'Works with file' {
+            $baseMock.Scriptblock.File = 'C:\my\test'
+            $baseMock.Path = 'Describe','Context','It <Name>'
+            $baseMock.Data = @{Name='Pester'}
+            New-TestItemId $baseMock | Should -Be 'C:\my\test|Describe|Context|It <Name>|Name=Pester'
+        }
+    }
 
-        # It 'Sample1 + Sample2' {
-        #     shouldReturnTestCount 13 @(
-        #         'C:\Users\JGrote\Projects\vscode-pester-test-adapter\sample\Tests\Sample.tests.ps1'
-        #         'C:\Users\JGrote\Projects\vscode-pester-test-adapter\sample\Tests\Sample2.tests.ps1'
-        #     )
-        # }
-        # It 'Sample1 + Sample2 + Sample 3 two individual tests' {
-        #     shouldReturnTestCount 15 @(
-        #         'C:\Users\JGrote\Projects\vscode-pester-test-adapter\sample\Tests\Sample.tests.ps1'
-        #         'C:\Users\JGrote\Projects\vscode-pester-test-adapter\sample\Tests\Sample2.tests.ps1'
-        #         'C:\Users\JGrote\Projects\vscode-pester-test-adapter\sample\Tests\Sample3.tests.ps1:4'
-        #         'C:\Users\JGrote\Projects\vscode-pester-test-adapter\sample\Tests\Sample3.tests.ps1:8'
-        #     )
-        # }
-
+    Context "Expand-TestCaseName" {
+        BeforeAll {
+            . $testScript 'fakepath' -LoadFunctionsOnly
+        }
+        BeforeEach {
+            $SCRIPT:baseMock = [PSCustomObject]@{
+                PSTypeName = 'Test'
+                Name = 'Pester'
+                Data = $null
+            }
+        }
+        It 'Fails with wrong type' {
+            $fake = [PSCustomObject]@{Name='Pester';PSTypeName='NotATest'}
+            {Expand-TestCaseName -Test $fake} | Should -Throw '*did not return a result of true*'
+        }
+        It 'Works with Array testcase' {
+            $baseMock.Name = 'Array TestCase <_>'
+            $baseMock.Data = @('pester')
+            Expand-TestCaseName $baseMock | Should -Be 'Array TestCase pester'
+        }
+        It 'Works with Single Hashtable testcase' {
+            $baseMock.Name = 'Array TestCase <Name>'
+            $baseMock.Data = @{Name='pester'}
+            Expand-TestCaseName $baseMock | Should -Be 'Array TestCase pester'
+        }
+        It 'Works with Multiple Hashtable testcase' {
+            $baseMock.Name = 'Array <Data> TestCase <Name>'
+            $baseMock.Data = @{Name='pester';Data='aCoolTest'}
+            Expand-TestCaseName $baseMock | Should -Be 'Array aCoolTest TestCase pester'
+        }
     }
 }

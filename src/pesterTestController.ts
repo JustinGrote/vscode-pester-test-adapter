@@ -4,7 +4,7 @@ import { PowerShellRunner } from './powershellRunner'
 
 /** Represents a test result returned from pester, serialized into JSON */
 
-export type TestResult = vscode.TestItemOptions | TestRunResult | TestInfo
+export type PesterTestInfo = vscode.TestItemOptions | TestRunResult | TestDefinition
 
 /** The type used to represent a test run from the Pester runner, with additional status data */
 export interface TestRunResult extends vscode.TestItemOptions {
@@ -17,14 +17,14 @@ export interface TestRunResult extends vscode.TestItemOptions {
     targetLine: number
 }
 
-export interface TestInfo extends vscode.TestItemOptions {
+export interface TestDefinition extends vscode.TestItemOptions {
     startLine: number
     endLine: number
     file: string
 }
 
 /** A union that represents all types of TestItems related to Pester */
-export type TestData = WorkspaceTestRoot | TestFile | TestInfo
+export type TestData = WorkspaceTestRoot | TestFile | TestDefinition
 
 /**
  * An "implementation" of TestItem that represents the test hierachy in a workspace.
@@ -98,9 +98,13 @@ export class TestFile {
             const fsPath = testFilePath.fsPath
             const fileTests = await ps.discoverPesterTests([fsPath], true)
             for (const testItem of fileTests) {
-                item.addChild(
-                    TestIt.create(testItem)
-                )
+                try {
+                    item.addChild(
+                        TestIt.create(testItem)
+                    )
+                } catch (err) {
+                    vscode.window.showErrorMessage(err.message)
+                }
             }
             item.status = vscode.TestItemStatus.Resolved
         }
@@ -114,13 +118,16 @@ export class TestFile {
 /** Represents an "It" statement block in Pester which roughly correlates to a Test Case or set of Cases */
 export class TestIt {
     public static create(
-        info: TestInfo
+        info: TestDefinition
     ) {
         info.uri = vscode.Uri.file(info.file)
-        const item = vscode.test.createTestItem<TestIt>(info)
+        const item = vscode.test.createTestItem<TestDefinition, never>(info, info)
+
+        // There are no child items here so we don't need a resolve handler
+        item.status = vscode.TestItemStatus.Resolved
+
         item.debuggable = true
         item.runnable = true
-        item.status = vscode.TestItemStatus.Resolved
         item.range = new vscode.Range(info.startLine, 0, info.endLine, 0)
         return item
     }
@@ -166,7 +173,7 @@ export class PesterTestController implements vscode.TestController<TestData> {
     }
 
     /** Fetch the Pester Test json information for a particular path(s) */
-    async getPesterTests<T extends TestResult>(path: string[], discoveryOnly?: boolean, testsOnly?: boolean) {
+    async getPesterTests<T extends PesterTestInfo>(path: string[], discoveryOnly?: boolean, testsOnly?: boolean) {
         const scriptFolderPath = Path.join(this.context.extension.extensionPath, 'Scripts')
         const scriptPath = Path.join(scriptFolderPath, 'PesterInterface.ps1')
         let scriptArgs = Array<string>()
@@ -182,7 +189,7 @@ export class PesterTestController implements vscode.TestController<TestData> {
         const result:T[] = JSON.parse(testResultJson)
         // TODO: Refactor this using class-transformer https://github.com/typestack/class-transformer
 
-        // Coerce null/undefined into an empty array
+        // Coerce null/undefined into an empty arrayP
         if (result == null || result == undefined) {return new Array<T>()}
 
         // BUG: ConvertTo-Json in PS5.1 doesn't have a "-AsArray" and can return single objects which typescript doesn't catch.
@@ -191,7 +198,7 @@ export class PesterTestController implements vscode.TestController<TestData> {
     }
     /** Retrieve Pester Test information without actually running them */
     async discoverPesterTests(path: string[], testsOnly?: boolean) {
-        return this.getPesterTests<TestInfo>(path, true, testsOnly)
+        return this.getPesterTests<TestDefinition>(path, true, testsOnly)
     }
     /** Run Pester Tests and retrieve the results */
     async runPesterTests(path: string[], testsOnly?: boolean) {
@@ -202,7 +209,7 @@ export class PesterTestController implements vscode.TestController<TestData> {
      * @inheritdoc
      */
     async runTests(
-        request: vscode.TestRunRequest<TestData>,
+        request: vscode.TestRunRequest<TestDefinition>,
         cancellation: vscode.CancellationToken
     ) {
         const run = vscode.test.createTestRun(request)
@@ -216,7 +223,9 @@ export class PesterTestController implements vscode.TestController<TestData> {
         for (const testItem of request.tests) {
             run.setState(testItem,vscode.TestResultState.Queued)
         }
-        const testsToRun = request.tests.map(testItem => testItem.id)
+        // Use a special line format to run the tests
+        // +1 because lines are zero based in vscode and 1-based in Powershell
+        const testsToRun = request.tests.map(testItem => {return [testItem.data.file, testItem.data.startLine+1].join(':')})
 
         // TODO: Use a queue instead to line these up like the test example
         for (const testItem of request.tests) {

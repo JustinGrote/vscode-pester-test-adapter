@@ -1,4 +1,5 @@
 #Requires -Modules @{ ModuleName="Pester";ModuleVersion="5.2.0" }
+using namespace System.Collections
 using namespace System.Collections.Generic
 using namespace Pester
 
@@ -9,13 +10,16 @@ param(
     #Only return "It" Test Results and not the resulting hierarcy
     [Switch]$TestsOnly,
     #Only return the test information, don't actually run them
-    [Switch]$Discovery
+    [Switch]$Discovery,
+    #Only load the functions but don't execute anything. Used for testing.
+    [Parameter(DontShow)][Switch]$LoadFunctionsOnly
 )
 
 $VerbosePreference = 'Ignore'
 $WarningPreference = 'Ignore'
 $DebugPreference = 'Ignore'
 
+#region Functions
 # Maps pester result status to vscode result status
 enum ResultStatus {
     Unset
@@ -39,6 +43,73 @@ function New-SuiteObject ([Block]$Block) {
     }
 }
 
+function Expand-TestCaseName {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory,ValueFromPipeline)]
+        [ValidateScript({
+            [bool]($_.PSTypeNames -match '^(Pester\.)?Test$')
+        })]$Test
+    )
+    process {
+        [String]$Name = $Test.Name.ToString()
+
+        $Data = $Test.Data
+        if ($Data -is [IDictionary]) {
+            $Data.keys | Foreach-Object {
+                $Name = $Name -replace ('<{0}>' -f $PSItem),$Data[$PSItem]
+            }
+        } elseif ($Data) {
+            $Name = $Name -replace '<_>',"$Data"
+        }
+
+        return $Name
+    }
+}
+
+
+function New-TestItemId {
+    <#
+    .SYNOPSIS
+    Create a string that uniquely identifies a test or test suite
+    .NOTES
+    Can be replaced with expandedpath if https://github.com/pester/Pester/issues/2005 is fixed
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory,ValueFromPipeline)]
+        [ValidateScript({
+            $null -ne ($_.PSTypeNames -match '^(Pester\.)?Test$')
+        })]$Test,
+        $TestIdDelimiter = '>>'
+    )
+    process {
+        if ($Test.Path -match $TestIdDelimiter) {
+            throw [NotSupportedException]"The pipe character '|' is not supported in test names with this adapter. Please remove all pipes from test/context/describe names"
+        }
+
+        #TODO: Edge cases
+        #Non-String Object
+        #Non-String Hashtable
+        #Other dictionaries
+        #Nested Hashtables
+        #Fancy TestCases, maybe just iterate them as TestCaseN or exclude
+        $Data = $Test.Data
+        if ($Data) {
+            if ($Data -is [IDictionary]) {
+                $Test.Data.GetEnumerator() | Sort-Object Name | Foreach-Object {
+                    $Test.Path += [String]([String]$PSItem.Name + '=' + [String]$PSItem.Value)
+                }
+            } else {
+                $Test.Path += [string]$Data
+            }
+        }
+        #Prepend the filename to the path
+        $Test.Path = ,$Test.ScriptBlock.File + $Test.Path
+        $Test.Path.where{$_} -join $TestIdDelimiter
+    }
+}
+
 function New-TestObject ([Test]$Test) {
     if ($Test.ErrorRecord) {
         #TODO: Better handling once pester adds support
@@ -52,11 +123,11 @@ function New-TestObject ([Test]$Test) {
     # TypeScript does not validate these data types, so numbers must be expressly stated so they don't get converted to strings
     [PSCustomObject]@{
         type = 'test'
-        id = $Test.ScriptBlock.File + ':' + $Test.StartLine
+        id = New-TestItemId $Test
         file = $Test.ScriptBlock.File
         startLine = [int]($Test.StartLine - 1) #Lines are zero-based in vscode
         endLine = [int]($Test.ScriptBlock.StartPosition.EndLine - 1) #Lines are zero-based in vscode
-        label = $Test.Name
+        label = Expand-TestCaseName $Test
         result = [ResultStatus]$Test.Result
         duration = $Test.duration.Milliseconds #I don't think anyone is doing sub-millisecond code performance testing in Powershell :)
         message = $Message
@@ -86,6 +157,9 @@ function fold ($children, $Block) {
     }
     $hashset.Clear() | Out-Null
 }
+
+#endregion Functions
+if ($LoadFunctionsOnly) {return}
 
 # These should be unique which is why we use a hashset
 $paths = [HashSet[string]]::new()
@@ -120,7 +194,7 @@ if ($lines.Count) {
 $runResult = Invoke-Pester -Configuration $config
 
 if ($TestsOnly) {
-    $testResult = $runResult.tests
+    $testResult = $runResult.Tests
 
     $testFilteredResult = if (-not $Discovery) {
         #If discovery was not run, its easy to filter the results
@@ -132,8 +206,8 @@ if ($TestsOnly) {
         #Returns true if the id matches. The ID is not a native property in pester, we have to construct it.
         $testResult | Where-Object {
             $Test = $PSItem
-            $id = $Test.ScriptBlock.File + ':' + $Test.StartLine
-            $id -in $lines
+            $location = $Test.ScriptBlock.File + ':' + $Test.StartLine
+            $location -in $lines
         }
     } else {
         $testResult
