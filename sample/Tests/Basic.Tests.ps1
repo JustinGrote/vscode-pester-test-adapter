@@ -33,24 +33,35 @@ Describe 'TestCases' {
     It 'TestCase HashTable <Name>' {
         $_ | Should -Not -BeNullOrEmpty
     } -TestCases @(
-        @{Name=1}
-        @{Name=2}
-        @{Name='red'}
-        @{Name='blue'}
+        @{Name = 1 }
+        @{Name = 2 }
+        @{Name = 'red' }
+        @{Name = 'blue' }
     )
 }
 
-Describe "Context Foreach <name>" -ForEach @(
-    @{ Name = "cactus"; Symbol = '🌵'; Kind = 'Plant' }
-    @{ Name = "giraffe"; Symbol = '🦒'; Kind = 'Animal' }
+Describe 'Describe Nested Foreach <name>' -ForEach @(
+    @{ Name = 'cactus'; Symbol = '🌵'; Kind = 'Plant' }
+    @{ Name = 'giraffe'; Symbol = '🦒'; Kind = 'Animal' }
 ) {
-    It "Returns <symbol>"  {$true}
+    It 'Returns <symbol>' { $true }
 
-    It "Has kind <kind>" {$true}
+    It 'Has kind <kind>' { $true }
 
-    It "Nested TestCase <Kind> <name>" {$true} -TestCases @{
+    It 'Nested Hashtable TestCase <kind> <name>' { $true } -TestCases @{
         Name = 'test'
     }
+    It 'Nested Array TestCase <kind> <_>' { $true } -TestCases @(
+        'Test'
+    )
+    It 'Nested Multiple Hashtable TestCase <kind> <name>' { $true } -TestCases @(
+        @{
+            Name = 'Pester1'
+        }
+        @{
+            Name = 'Pester2'
+        }
+    )
 }
 
 # Edge cases that may occur during editing
@@ -63,8 +74,8 @@ Describe 'Duplicate DescribeWithContext' {
         It 'DupeContext' { $true }
     }
 }
-Describe 'Duplicate DescribeWithContext' {
-    Context 'DupeContext' {
-        It 'DupeContext' { $true }
-    }
-}
+# Describe 'Duplicate DescribeWithContext' {
+#     Context 'DupeContext' {
+#         It 'DupeContext' { $true }
+#     }
+# }

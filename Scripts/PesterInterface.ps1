@@ -105,7 +105,6 @@ function Expand-TestCaseName {
     }
 }
 
-
 function New-TestItemId {
     <#
     .SYNOPSIS
@@ -267,6 +266,9 @@ if ($TestsOnly) {
 
     # DO NOT USE THE PIPELINE, it will unwrap the array and cause a problem with single-item results
     return ConvertTo-Json $testObjects -Depth 100
+} else {
+
+    #Build a hierarchy in reverse, first looping through tests, then building
 }
 
 # TODO: Hierarchical return

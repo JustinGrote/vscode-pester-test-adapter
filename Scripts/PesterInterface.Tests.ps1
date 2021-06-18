@@ -13,7 +13,7 @@ Describe 'PesterInterface' {
             }
         }
         It 'Sample1 Single File' {
-            shouldReturnTestCount 24 @(
+            shouldReturnTestCount 31 @(
                 Resolve-Path "$PSScriptRoot/../sample/Tests/Basic.Tests.ps1"
             )
         }
