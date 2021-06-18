@@ -40,6 +40,18 @@ Describe 'TestCases' {
     )
 }
 
+Describe "Context Foreach <name>" -ForEach @(
+    @{ Name = "cactus"; Symbol = '🌵'; Kind = 'Plant' }
+    @{ Name = "giraffe"; Symbol = '🦒'; Kind = 'Animal' }
+) {
+    It "Returns <symbol>"  {$true}
+
+    It "Has kind <kind>" {$true}
+
+    It "Nested TestCase <Kind> <name>" {$true} -TestCases @{
+        Name = 'test'
+    }
+}
 
 # Edge cases that may occur during editing
 

@@ -43,6 +43,46 @@ function New-SuiteObject ([Block]$Block) {
     }
 }
 
+function Merge-TestData () {
+    #Produce a unified test Data object from this object and its parents
+    #Merge the local data and block data. Local data takes precedence.
+    #Used in Test ID creation
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory,ValueFromPipeline)]
+        [ValidateScript({
+            [bool]($_.PSTypeNames -match '^(Pester\.)?Test$')
+        })]$Test
+    )
+    #TODO: Nested Describe/Context Foreach?
+    #TODO: Edge cases
+    #Non-String Object
+    #Non-String Hashtable
+    #Other dictionaries
+    #Nested Hashtables
+    #Fancy TestCases, maybe just iterate them as TestCaseN or exclude
+
+
+    #If data is not iDictionary array, we will store it as _ to standardize this is a bit
+    $Data = [SortedDictionary[string,object]]::new()
+
+    #This will merge the block data, with the lowest level data taking precedence
+    $DataSources = $Test.Block.Data,$Test.Data
+    foreach ($DataItem in $DataSources) {
+        if ($DataItem) {
+            if ($DataItem -is [IDictionary]) {
+                $DataItem.GetEnumerator().foreach{
+                    $Data.$($PSItem.Name) = $PSItem.Value
+                }
+            } else {
+                #Save to the "_" key if it was an array input since that's what Pester uses for substitution
+                $Data._ = $DataItem
+            }
+        }
+    }
+    return $Data
+}
+
 function Expand-TestCaseName {
     [CmdletBinding()]
     param(
@@ -54,13 +94,11 @@ function Expand-TestCaseName {
     process {
         [String]$Name = $Test.Name.ToString()
 
-        $Data = $Test.Data
-        if ($Data -is [IDictionary]) {
-            $Data.keys | Foreach-Object {
-                $Name = $Name -replace ('<{0}>' -f $PSItem),$Data[$PSItem]
-            }
-        } elseif ($Data) {
-            $Name = $Name -replace '<_>',"$Data"
+        $Data = Merge-TestData $Test
+
+        # Array value was stored as _ by Merge-TestData
+        $Data.GetEnumerator().ForEach{
+            $Name = $Name -replace ('<{0}>' -f $PSItem.Key),$PSItem.Value
         }
 
         return $Name
@@ -81,32 +119,42 @@ function New-TestItemId {
         [ValidateScript({
             $null -ne ($_.PSTypeNames -match '^(Pester\.)?Test$')
         })]$Test,
-        $TestIdDelimiter = '>>'
+        $TestIdDelimiter = '>>',
+        [Parameter(DontShow)][Switch]$AsString
     )
     process {
         if ($Test.Path -match $TestIdDelimiter) {
             throw [NotSupportedException]"The pipe character '|' is not supported in test names with this adapter. Please remove all pipes from test/context/describe names"
         }
 
-        #TODO: Edge cases
-        #Non-String Object
-        #Non-String Hashtable
-        #Other dictionaries
-        #Nested Hashtables
-        #Fancy TestCases, maybe just iterate them as TestCaseN or exclude
-        $Data = $Test.Data
-        if ($Data) {
-            if ($Data -is [IDictionary]) {
-                $Test.Data.GetEnumerator() | Sort-Object Name | Foreach-Object {
-                    $Test.Path += [String]([String]$PSItem.Name + '=' + [String]$PSItem.Value)
-                }
-            } else {
-                $Test.Path += [string]$Data
-            }
+
+        $Data = Merge-TestData $Test
+
+        #Add a suffix of the testcase/foreach info that should uniquely identify the etst
+        #TODO: Maybe use a hash of the serialized object if it is not natively a string?
+        #TODO: Or maybe just hash the whole thing. The ID would be somewhat useless for troubleshooting
+        $Data.GetEnumerator() | Foreach-Object {
+            $Test.Path += [String]([String]$PSItem.Key + '=' + [String]$PSItem.Value)
         }
+
         #Prepend the filename to the path
         $Test.Path = ,$Test.ScriptBlock.File + $Test.Path
-        $Test.Path.where{$_} -join $TestIdDelimiter
+        $TestID = $Test.Path.where{$_} -join $TestIdDelimiter
+
+
+        if ($AsString) {
+            return $TestID
+        }
+
+        #Clever: https://www.reddit.com/r/PowerShell/comments/dr3taf/does_powershell_have_a_native_command_to_hash_a/
+        #TODO: This should probably be a helper function
+        Write-Debug "Non-Hashed Test ID for $($Test.ExpandedPath): $TestID"
+        return (Get-FileHash -InputStream (
+            [IO.MemoryStream]::new(
+                [Text.Encoding]::UTF8.GetBytes($TestID)
+            )
+        ) -Algorithm SHA256).hash
+
     }
 }
 

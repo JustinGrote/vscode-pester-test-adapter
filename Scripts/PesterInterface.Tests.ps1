@@ -1,3 +1,4 @@
+$OutputEncoding = [Text.Encoding]::UTF8
 Describe 'PesterInterface' {
     BeforeAll{
         $SCRIPT:testScript = Resolve-Path "$PSScriptRoot/PesterInterface.ps1"
@@ -12,7 +13,7 @@ Describe 'PesterInterface' {
             }
         }
         It 'Sample1 Single File' {
-            shouldReturnTestCount 20 @(
+            shouldReturnTestCount 24 @(
                 Resolve-Path "$PSScriptRoot/../sample/Tests/Basic.Tests.ps1"
             )
         }
@@ -32,34 +33,32 @@ Describe 'PesterInterface' {
                 Data = $null
             }
         }
-        It 'Fails on | character in Test Name' {
-            $baseMock.Path = 'My','Pat|h','ToTest'
-            {New-TestItemId $baseMock} | Should -Throw '*The pipe character * is not supported*'
-        }
         It 'basic path' {
             $baseMock.Path = 'Describe','Context','It'
-            New-TestItemId $baseMock | Should -Be 'Describe|Context|It'
+            New-TestItemId -AsString $baseMock |
+                Should -Be 'Describe>>Context>>It'
         }
         It 'Array testcase' {
             $baseMock.Path = 'Describe','Context','It <_>'
             $baseMock.Data = @('test')
-            New-TestItemId $baseMock | Should -Be 'Describe|Context|It <_>|test'
+            New-TestItemId -AsString $baseMock |
+                Should -Be 'Describe>>Context>>It <_>>>_=test'
         }
         It 'Hashtable testcase one key' {
             $baseMock.Path = 'Describe','Context','It <Name>'
             $baseMock.Data = @{Name='Pester'}
-            New-TestItemId $baseMock | Should -Be 'Describe|Context|It <Name>|Name=Pester'
+            New-TestItemId -AsString $baseMock | Should -Be 'Describe>>Context>>It <Name>>>Name=Pester'
         }
         It 'Hashtable testcase multiple key' {
             $baseMock.Path = 'Describe','Context','It <Name> <Data>'
             $baseMock.Data = @{Name='Pester';Data='Something'}
-            New-TestItemId $baseMock | Should -Be 'Describe|Context|It <Name> <Data>|Data=Something|Name=Pester'
+            New-TestItemId -AsString $baseMock | Should -Be 'Describe>>Context>>It <Name> <Data>>>Data=Something>>Name=Pester'
         }
         It 'Works with file' {
             $baseMock.Scriptblock.File = 'C:\my\test'
             $baseMock.Path = 'Describe','Context','It <Name>'
             $baseMock.Data = @{Name='Pester'}
-            New-TestItemId $baseMock | Should -Be 'C:\my\test|Describe|Context|It <Name>|Name=Pester'
+            New-TestItemId -AsString $baseMock | Should -Be 'C:\my\test>>Describe>>Context>>It <Name>>>Name=Pester'
         }
     }
 
