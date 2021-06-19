@@ -160,6 +160,7 @@ function New-TestItemId {
 function New-TestObject ([Test]$Test) {
     if ($Test.ErrorRecord) {
         #TODO: Better handling once pester adds support
+        #BUG: unhandled exception fails but provides no special message. Should figure out how to include that info
         #Reference: https://github.com/pester/Pester/issues/1993
         $Message = [string]$Test.ErrorRecord
         if ([string]$Test.ErrorRecord -match 'Expected (?<Expected>.+?), but (got )?(?<actual>.+?)\.$') {
