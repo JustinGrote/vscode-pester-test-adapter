@@ -24,7 +24,7 @@ export interface TestDefinition extends vscode.TestItemOptions {
 }
 
 /** A union that represents all types of TestItems related to Pester */
-export type TestData = WorkspaceTestRoot | TestFile | TestDefinition
+export type TestData = TestFile | TestDefinition
 
 /**
  * An "implementation" of TestItem that represents the test hierachy in a workspace.
@@ -36,9 +36,10 @@ export class WorkspaceTestRoot {
         workspaceFolder: vscode.WorkspaceFolder,
         token: vscode.CancellationToken,
         pesterTestController: PesterTestController,
-    ): vscode.TestItem<WorkspaceTestRoot, TestData> {
-        // item is meant to represent "this new item we are building"
-        const item = vscode.test.createTestItem<WorkspaceTestRoot, TestData>({
+    ): vscode.TestItem<WorkspaceTestRoot, TestFile> {
+        // item is meant to generically represent "this new item we are building" in a test hierarchy
+        // First generic type is what the data property should be (if used). Second generic type is what kind of children it can have
+        const item = vscode.test.createTestItem<WorkspaceTestRoot, TestFile>({
             id: `pester ${workspaceFolder.uri}`,
             label: 'Pester',
             uri: workspaceFolder.uri
@@ -57,22 +58,32 @@ export class WorkspaceTestRoot {
             }
             item.status = vscode.TestItemStatus.Resolved
 
-            watcher.onDidCreate(uri =>
-                item.addChild(TestFile.create(uri, pesterTestController))
+            watcher.onDidCreate(
+                uri => item.addChild(TestFile.create(uri, pesterTestController))
             )
-            // TODO: Run pester scanner on change
-            // watcher.onDidChange(uri =>
-            //     contentChange.fire(uri))
-            watcher.onDidDelete(uri =>
-                item.children.get(uri.toString())?.dispose()
+            //Move this to
+            watcher.onDidChange(
+                uri => {
+                    const testFile = item.children.get(uri.toString())
+                    if (testFile && testFile.resolveHandler) {
+                        // TODO: Use an event handler like the test controller example
+                        testFile.dispose()
+                        item.addChild(TestFile.create(uri, pesterTestController))
+                    } else {
+                        console.log(`A test file wasnt returned or the test file didnt have a resolvehandler for ${uri.toString()}. This is probably a bug`)
+                    }
+                }
             )
+            watcher.onDidDelete(uri => item.children.get(uri.toString())?.dispose())
 
             token.onCancellationRequested(() => {
-                // This will trigger the resolveHandler again
+                // Tell vscode to rescan the whole workspace for tests via resolveHandler
                 item.status = vscode.TestItemStatus.Pending
                 watcher.dispose()
             })
         }
+
+        // TODO: Add setting to scan all files on startup
 
         return item
     }
@@ -86,8 +97,8 @@ export class WorkspaceTestRoot {
  * */
 export class TestFile {
     public static create(testFilePath: vscode.Uri, ps: PesterTestController) {
-        const item = vscode.test.createTestItem<TestFile>({
-            id: testFilePath.fsPath,
+        const item = vscode.test.createTestItem<TestFile, TestData>({
+            id: testFilePath.toString(),
             label: testFilePath.path.split('/').pop()!,
             uri: testFilePath
         })
