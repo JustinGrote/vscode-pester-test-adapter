@@ -4,8 +4,7 @@ $VerbosePreference = 'Ignore'
 $WarningPreference = 'Ignore'
 $DebugPreference = 'Ignore'
 Import-Module Pester -MinimumVersion 5.0.0 -ErrorAction Stop
-function Discover-Test
-{
+function Discover-Test {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
