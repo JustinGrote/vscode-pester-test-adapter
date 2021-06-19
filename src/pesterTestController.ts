@@ -61,12 +61,11 @@ export class WorkspaceTestRoot {
             watcher.onDidCreate(
                 uri => item.addChild(TestFile.create(uri, pesterTestController))
             )
-            //Move this to
             watcher.onDidChange(
                 uri => {
                     const testFile = item.children.get(uri.toString())
                     if (testFile && testFile.resolveHandler) {
-                        // TODO: Use an event handler like the test controller example
+                        // TODO: Use an event handler like the markdown test example
                         testFile.dispose()
                         item.addChild(TestFile.create(uri, pesterTestController))
                     } else {
