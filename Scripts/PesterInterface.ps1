@@ -176,7 +176,7 @@ function New-TestObject ([Test]$Test) {
         endLine = [int]($Test.ScriptBlock.StartPosition.EndLine - 1) #Lines are zero-based in vscode
         label = Expand-TestCaseName $Test
         result = [ResultStatus]$Test.Result
-        duration = $Test.duration.Milliseconds #I don't think anyone is doing sub-millisecond code performance testing in Powershell :)
+        duration = $Test.UserDuration.TotalMilliseconds #I don't think anyone is doing sub-millisecond code performance testing in Powershell :)
         message = $Message
         expected = $Expected
         actual = $Actual
