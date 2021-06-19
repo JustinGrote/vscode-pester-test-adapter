@@ -21,6 +21,8 @@ export interface TestDefinition extends vscode.TestItemOptions {
     startLine: number
     endLine: number
     file: string
+    description?: string
+    error?: string
 }
 
 /** A union that represents all types of TestItems related to Pester */
